@@ -5,7 +5,6 @@
 #include <stat.h>
 #include <dirent.h>
 
-
 #define MAX_ARGS            5
 
 static inline int
@@ -142,4 +141,8 @@ sys_getdirentry(int fd, struct dirent *dirent) {
 int
 sys_dup(int fd1, int fd2) {
     return syscall(SYS_dup, fd1, fd2);
+}
+
+int sys_debug(uint32_t pid, enum DebugSignal sig, uint32_t arg) {
+    return syscall(SYS_debug, sig, arg);
 }

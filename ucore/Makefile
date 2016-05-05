@@ -313,6 +313,8 @@ monitor: $(UCOREIMG) $(SWAPING) $(SFSIMG)
 
 TERMINAL := gnome-terminal
 
+gdb: $(UCOREIMG)
+	$(V)$(QEMU) -S -s -parallel stdio -hda $< -serial null
 dbg4ec: $(UCOREIMG) $(SWAPIMG) $(SFSIMG)
 	$(V)$(QEMU) -S -s -parallel stdio $(QEMUOPTS) -serial null
 

@@ -29,6 +29,8 @@
 #define SYS_getcwd          121
 #define SYS_getdirentry     128
 #define SYS_dup             130
+
+#define SYS_debug           132
 /* OLNY FOR LAB6 */
 #define SYS_lab6_set_priority 255
 

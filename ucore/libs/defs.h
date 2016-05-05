@@ -74,6 +74,11 @@ uint32_t __n = (uint32_t)(n);                           \
  * */
 #define to_struct(ptr, type, member)                               \
     ((type *)((char *)(ptr) - offsetof(type, member)))
+    
+enum DebugSignal {
+    DEBUG_BREAKPOINT = 0, 
+    DEBUG_CONTINUE = 1
+};
 
 #endif /* !__LIBS_DEFS_H__ */
 
