@@ -1,0 +1,276 @@
++ verbose=true
++ [ x = x-v ]
++ out=/dev/null
++ err=/dev/null
++ gmake --version
++ make=make
++ makeopts=--quiet --no-print-directory -j
++ awk=awk
++ bc=bc
++ date=date
++ grep=grep
++ rm=rm -f
++ sed=sed
++ sym_table=obj/kernel.sym
++ make_print GDB
++ make --quiet --no-print-directory -j print-GDB
++ echo gdb
++ gdb=gdb
++ gdbport=1234
++ make_print GRADE_GDB_IN
++ make --quiet --no-print-directory -j print-GRADE_GDB_IN
++ echo .gdb.in
++ gdb_in=.gdb.in
++ make_print qemu
++ make --quiet --no-print-directory -j print-qemu
++ echo qemu-system-i386
++ qemu=qemu-system-i386
++ make_print GRADE_QEMU_OUT
++ make --quiet --no-print-directory -j print-GRADE_QEMU_OUT
++ echo .qemu.out
++ qemu_out=.qemu.out
++ qemu-system-i386 -nographic -help
++ grep -q ^-gdb
++ qemugdb=-gdb tcp::1234
++ default_timeout=30
++ default_pts=5
++ pts=5
++ part=0
++ part_pos=0
++ total=0
++ total_pos=0
++ make_print ucoreimg
++ make --quiet --no-print-directory -j print-ucoreimg
++ echo bin/ucore.img
++ osimg=bin/ucore.img
++ make_print swapimg
++ make --quiet --no-print-directory -j print-swapimg
++ echo bin/swap.img
++ swapimg=bin/swap.img
++ qemuopts=-hda bin/ucore.img -drive file=bin/swap.img,media=disk,cache=writeback
++ brkfun=readline
++ run_test -prog badsegment -check default_check - kernel_execve: pid = ., name = "badsegment".* - trapframe at 0xc....... trap 0x0000000d General Protection   err  0x00000028 -   eip  0x008..... -   esp  0xaff.....   cs   0x----001b   ss   0x----0023 ! - user panic at .*
++ tag=
++ prog=
++ check=check_regexps
++ true
++ select=
++ expr substr -prog 2 5
++ select=prog
++ eval prog=$2
++ prog=badsegment
++ [ -z prog ]
++ shift
++ shift
++ true
++ select=
++ [ -z  ]
++ break
++ defs=
++ expr x-check : x-D.*
++ [ x-check = x-check ]
++ check=default_check
++ shift
++ shift
++ [ -z badsegment ]
++ [ -z  ]
++ tag=badsegment
++ args=build-badsegment 
++ build_run badsegment build-badsegment 
++ show_build_tag badsegment
++ echo badsegment:
++ awk {printf "%-24s ", $0}
++ shift
++ true
++ echo make build-badsegment  ...
++ make --quiet --no-print-directory -j build-badsegment DEFS+=-DDEBUG_GRADE
++ [ 0 -ne 0 ]
++ run_qemu
++ qemuextra=
++ [ readline ]
++ qemuextra=-S -gdb tcp::1234
++ [ -z  ]
++ timeout=30
++ get_time
++ date +%s.%N
++ echo 1462369711.602655590
++ t0=1462369711.602655590
++ pid=14220
++ sleep 1
++ [ -n readline ]
++ grep  readline$ obj/kernel.sym
++ sed -es/ .*$//g
++ brkaddr=c0100417
++ echo target remote localhost:1234
++ echo break *0xc0100417
++ echo continue
++ gdb -batch -nx -x .gdb.in
++ kill 14220
++ show_time
++ get_time
++ date +%s.%N
++ echo 1462369712.967967864
++ t1=1462369712.967967864
++ + echo scale=1; (1462369712.967967864-1462369711.602655590)/1sed
+ s/.N/.0/g
++ bc
++ time=1.3
++ echo (1.3s)
++ check_result check result default_check - kernel_execve: pid = ., name = "badsegment".* - trapframe at 0xc....... trap 0x0000000d General Protection   err  0x00000028 -   eip  0x008..... -   esp  0xaff.....   cs   0x----001b   ss   0x----0023 ! - user panic at .*
++ show_check_tag check result
++ echo check result:
++ awk {printf "  -%-40s  ", $0}
++ shift
++ [ ! -s .qemu.out ]
++ [ ! -s .qemu.out ]
++ check=default_check
++ shift
++ default_check - kernel_execve: pid = ., name = "badsegment".* - trapframe at 0xc....... trap 0x0000000d General Protection   err  0x00000028 -   eip  0x008..... -   esp  0xaff.....   cs   0x----001b   ss   0x----0023 ! - user panic at .*
++ pts=7
++ check_regexps - kernel_execve: pid = ., name = "badsegment".* - trapframe at 0xc....... trap 0x0000000d General Protection   err  0x00000028 -   eip  0x008..... -   esp  0xaff.....   cs   0x----001b   ss   0x----0023 ! - user panic at .*
++ okay=yes
++ not=0
++ reg=0
++ error=
++ [ x- = x! ]
++ [ x- = x- ]
++ reg=1
++ [ xkernel_execve: pid = ., name = "badsegment".* = x! ]
++ [ xkernel_execve: pid = ., name = "badsegment".* = x- ]
++ [ 1 -ne 0 ]
++ grep -E ^kernel_execve: pid = ., name = "badsegment".*$ .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'
++ okay=no
++ [ -z  ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'
++ not=0
++ reg=0
++ [ x- = x! ]
++ [ x- = x- ]
++ reg=1
++ [ xtrapframe at 0xc....... = x! ]
++ [ xtrapframe at 0xc....... = x- ]
++ [ 1 -ne 0 ]
++ grep -E ^trapframe at 0xc.......$ .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing 'trapframe at 0xc.......'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'
++ not=0
++ reg=0
++ [ xtrap 0x0000000d General Protection = x! ]
++ [ xtrap 0x0000000d General Protection = x- ]
++ [ 0 -ne 0 ]
++ grep -F trap 0x0000000d General Protection .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing 'trap 0x0000000d General Protection'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'
++ not=0
++ reg=0
++ [ x  err  0x00000028 = x! ]
++ [ x  err  0x00000028 = x- ]
++ [ 0 -ne 0 ]
++ grep -F   err  0x00000028 .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing '  err  0x00000028'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'
++ not=0
++ reg=0
++ [ x- = x! ]
++ [ x- = x- ]
++ reg=1
++ [ x  eip  0x008..... = x! ]
++ [ x  eip  0x008..... = x- ]
++ [ 1 -ne 0 ]
++ grep -E ^  eip  0x008.....$ .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing '  eip  0x008.....'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'
++ not=0
++ reg=0
++ [ x- = x! ]
++ [ x- = x- ]
++ reg=1
++ [ x  esp  0xaff..... = x! ]
++ [ x  esp  0xaff..... = x- ]
++ [ 1 -ne 0 ]
++ grep -E ^  esp  0xaff.....$ .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing '  esp  0xaff.....'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'
++ not=0
++ reg=0
++ [ x  cs   0x----001b = x! ]
++ [ x  cs   0x----001b = x- ]
++ [ 0 -ne 0 ]
++ grep -F   cs   0x----001b .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing '  cs   0x----001b'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b'
++ not=0
++ reg=0
++ [ x  ss   0x----0023 = x! ]
++ [ x  ss   0x----0023 = x- ]
++ [ 0 -ne 0 ]
++ grep -F   ss   0x----0023 .qemu.out
++ found=0
++ [ 0 -eq 0 ]
++ [ 0 -eq 0 ]
++ msg=!! error: missing '  ss   0x----0023'
++ okay=no
++ [ -z !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b' ]
++ error=!! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b'\n!! error: missing '  ss   0x----0023'
++ not=0
++ reg=0
++ [ x! = x! ]
++ not=1
++ [ x- = x! ]
++ [ x- = x- ]
++ reg=1
++ [ xuser panic at .* = x! ]
++ [ xuser panic at .* = x- ]
++ [ 1 -ne 0 ]
++ grep -E ^user panic at .*$ .qemu.out
++ found=0
++ [ 0 -eq 1 ]
++ not=0
++ reg=0
++ [ no = yes ]
++ fail !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b'\n!! error: missing '  ss   0x----0023'
++ show_msg WRONG !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b'\n!! error: missing '  ss   0x----0023'
++ echo WRONG
++ shift
++ [ 1 -gt 0 ]
++ echo !! error: missing 'kernel_execve: pid = ., name = "badsegment".*'\n!! error: missing 'trapframe at 0xc.......'\n!! error: missing 'trap 0x0000000d General Protection'\n!! error: missing '  err  0x00000028'\n!! error: missing '  eip  0x008.....'\n!! error: missing '  esp  0xaff.....'\n!! error: missing '  cs   0x----001b'\n!! error: missing '  ss   0x----0023'
++ awk {printf "   %s\n", $0}
++ echo
++ expr 0 + 7
++ part_pos=7
++ true
++ exit 1
