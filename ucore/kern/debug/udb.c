@@ -4,6 +4,15 @@
 #include <pmm.h>
 #include <vmm.h>
 
+void udbSleep() {
+    bool intr_flag;
+    local_intr_save(intr_flag);
+    current->state = PROC_SLEEPING;
+    current->wait_state = WT_CHILD;
+    local_intr_restore(intr_flag);
+    schedule();
+}
+
 void udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
     uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
     struct Page * page = get_page(proc->mm->pgdir, la, NULL);
@@ -32,9 +41,7 @@ int udbWait(uint32_t pid) {
         break;
     case PROC_RUNNABLE:
         // sleep current process
-        current->state = PROC_SLEEPING;
-        current->wait_state = WT_CHILD;
-        schedule();
+        udbSleep();
         break;
     default:
         // child process has exited (unexpected?)
@@ -53,4 +60,22 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
             return udbWait(pid);
         break;
     }
+}
+
+void udbOnTrap() {
+    // WHAT WE DONT HAVE [REG:PC]!???
+    struct proc_struct* parent = current->parent;
+    switch(parent->state) {
+    case PROC_SLEEPING:
+        // wake up parent
+        wakeup_proc(parent);
+        break;
+    case PROC_RUNNABLE:
+        // cross fingers and wait parent's turn
+        break;
+    default:
+        // udb doesnt even try to wait
+        break;
+    }
+    udbSleep();
 }
