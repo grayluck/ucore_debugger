@@ -13,11 +13,16 @@ void udbSleep() {
     schedule();
 }
 
+uint32_t* oriAddr;
+uint32_t oriContent;
+
 int udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
     uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
     struct Page * page = get_page(proc->mm->pgdir, la, NULL);
     uint32_t* kaddr = page2kva(page) + (vaddr - la);
-    *kaddr = 0x1234567;
+    oriAddr = kaddr;
+    oriContent = *kaddr;
+    *kaddr |= 0xcc;
     return 0;
 }
 
@@ -35,7 +40,6 @@ int udbAttach(const char* name) {
 
 int udbWait(struct proc_struct* proc) {
     struct proc_struct* childProc = proc;
-    // TODO may need lock
     switch(childProc->state) {
     case PROC_SLEEPING:
         // do nothing
@@ -53,6 +57,7 @@ int udbWait(struct proc_struct* proc) {
 }
 
 int udbContinue(struct proc_struct* proc) {
+    *oriAddr = oriContent;
     wakeup_proc(proc);
 }
 

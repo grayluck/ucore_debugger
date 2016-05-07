@@ -2,7 +2,11 @@
 #include <ulib.h>
 #include <defs.h>
 
+int testValue = 1;
+
 int main(void) {
-    cprintf("hello world.");
+    cprintf("%d\n", testValue);
+    testValue = 2;
+    cprintf("%d\n", testValue);
     return 0;
 }
