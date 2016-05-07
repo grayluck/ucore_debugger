@@ -713,10 +713,6 @@ load_icode(int fd, int argc, char **kargv) {
             start += size;
         }
     }
-    uintptr_t la = ROUNDDOWN(0x800020, PGSIZE);
-    page = get_page(mm->pgdir, la, NULL);
-    uint32_t* kaddr = page2kva(page)+0x4ac;
-    *kaddr = 0x1234567;
     
     sysfile_close(fd);
 

@@ -144,5 +144,5 @@ sys_dup(int fd1, int fd2) {
 }
 
 int sys_debug(uint32_t pid, enum DebugSignal sig, uint32_t arg) {
-    return syscall(SYS_debug, sig, arg);
+    return syscall(SYS_debug, pid, sig, arg);
 }
