@@ -13,11 +13,12 @@ void udbSleep() {
     schedule();
 }
 
-void udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
+int udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
     uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
     struct Page * page = get_page(proc->mm->pgdir, la, NULL);
     uint32_t* kaddr = page2kva(page) + (vaddr - la);
     *kaddr = 0x1234567;
+    return 0;
 }
 
 int udbAttach(const char* name) {
@@ -32,8 +33,8 @@ int udbAttach(const char* name) {
     return 0;
 }
 
-int udbWait(uint32_t pid) {
-    struct proc_struct* childProc = find_proc(pid);
+int udbWait(struct proc_struct* proc) {
+    struct proc_struct* childProc = proc;
     // TODO may need lock
     switch(childProc->state) {
     case PROC_SLEEPING:
@@ -51,13 +52,24 @@ int udbWait(uint32_t pid) {
     return 0;
 }
 
+int udbContinue(struct proc_struct* proc) {
+    wakeup_proc(proc);
+}
+
 int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
+    struct proc_struct* proc = find_proc(pid);
     switch(sig) {
         case DEBUG_ATTACH:
             return udbAttach(arg);
         break;
         case DEBUG_WAIT:
-            return udbWait(pid);
+            return udbWait(proc);
+        break;
+        case DEBUG_BREAKPOINT:
+            return udbSetBreakpoint(proc, arg);
+        break;
+        case DEBUG_CONTINUE:
+            return udbContinue(proc);
         break;
     }
 }
