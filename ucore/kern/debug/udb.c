@@ -22,18 +22,20 @@ int udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
     uint32_t* kaddr = page2kva(page) + (vaddr - la);
     oriAddr = kaddr;
     oriContent = *kaddr;
-    *kaddr |= 0xcc;
+    *kaddr = (data & 0xFFFFFF00) | 0xCC;
     return 0;
 }
 
-int udbAttach(const char* name) {
+int udbAttach(char* argv[]) {
     /*
     const char *name = (const char *)arg[0];
     int argc = (int)arg[1];
     const char **argv = (const char **)arg[2];
     */
-    const char *argv[] = {name};
-    int ret = do_execve(name, 1, argv);
+    int argc = 0;
+    while(argv[argc])
+        argc++;
+    int ret = do_execve(argv[0], argc, argv);
     udbSetBreakpoint(current, current->tf->tf_eip);
     return 0;
 }

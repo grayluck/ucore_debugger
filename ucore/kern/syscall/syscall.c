@@ -157,13 +157,6 @@ sys_dup(uint32_t arg[]) {
     return sysfile_dup(fd1, fd2);
 }
 
-static int sys_debugexec(uint32_t arg[]) {
-    const char *name = (const char *)arg[0];
-    int argc = (int)arg[1];
-    const char **argv = (const char **)arg[2];
-    return do_execve(name, argc, argv);
-}
-
 static int sys_debug(uint32_t arg[]) {
     return userDebug(arg[0], arg[1], arg[2]);
 }
@@ -191,8 +184,7 @@ static int (*syscalls[])(uint32_t arg[]) = {
     [SYS_getcwd]            sys_getcwd,
     [SYS_getdirentry]       sys_getdirentry,
     [SYS_dup]               sys_dup,
-    [SYS_debug]             sys_debug,
-    [SYS_debugexec]         sys_debugexec
+    [SYS_debug]             sys_debug
 };
 
 #define NUM_SYSCALLS        ((sizeof(syscalls)) / (sizeof(syscalls[0])))

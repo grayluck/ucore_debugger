@@ -67,9 +67,13 @@ readline(const char *prompt) {
     return buffer;
 }
 
-int main(int c, char* s[]) {
+char* subArgv[EXEC_MAX_ARG_NUM + 1];
+
+int main(int argc, char* argv[]) {
     if ((pid = fork()) == 0) {
-        sys_debug(0, DEBUG_ATTACH, "test");
+        subArgv[0] = "test";
+        subArgv[1] = NULL;
+        sys_debug(0, DEBUG_ATTACH, subArgv);
         exit(0);
     }
     udbWait();
