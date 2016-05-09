@@ -17,14 +17,13 @@
 uint32_t pid;
 
 void uninit() {
+    cprintf("child has exited.");
     exit(0);
 }
 
 void udbWait() {
-    if(sys_debug(pid, DEBUG_WAIT, 0) == -1) {
-        cprintf("child has exited.");
+    if(sys_debug(pid, DEBUG_WAIT, 0) == -1)
         uninit();
-    }
 }
 
 char *
@@ -69,16 +68,39 @@ readline(const char *prompt) {
 
 char* subArgv[EXEC_MAX_ARG_NUM + 1];
 
+#define MAXSYM 200
+#define MAXBUF 1024
+
+char* sym[MAXSYM];
+int symn = 0;
+
+char buf[MAXBUF];
+char target[MAXBUF];
+
+void readSym() {
+    symn = 0;
+    strcpy(buf, target);
+    char* tmp = strcat(buf, ".sym");
+}
+
+void getSym(char* s) {
+    
+}
+
 int main(int argc, char* argv[]) {
+    strcpy(target, "test");
+    readSym();
     if ((pid = fork()) == 0) {
-        subArgv[0] = "test";
+        subArgv[0] = target;
         subArgv[1] = NULL;
         sys_debug(0, DEBUG_ATTACH, subArgv);
         exit(0);
     }
-    udbWait();
-    readline("udb>");
-    sys_debug(pid, DEBUG_CONTINUE, 0);
-    udbWait();
+    while(1) {
+        udbWait();
+        //readline("udb>");
+        if(sys_debug(pid, DEBUG_CONTINUE, 0))
+            uninit();
+    }
     return 0;
 }
