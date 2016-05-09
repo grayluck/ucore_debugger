@@ -22,7 +22,7 @@ int udbSetBreakpoint(struct proc_struct* proc, uintptr_t vaddr) {
     uint32_t* kaddr = page2kva(page) + (vaddr - la);
     oriAddr = kaddr;
     oriContent = *kaddr;
-    *kaddr = (data & 0xFFFFFF00) | 0xCC;
+    *kaddr = (*kaddr & 0xFFFFFF00) | 0xCC;
     return 0;
 }
 
