@@ -166,21 +166,29 @@ int udbStepInto(int argc, char* argv[]) {
     doSysDebug(DEBUG_STEPINTO, 0);
 }
 
+uint32_t getVaddr(char* s) {
+    char* addr = s;
+    char* vaddr;
+    if(addr[0] == '*') {
+        vaddr = strToInt(addr + 1);
+    } else {
+        vaddr = getSym(addr);
+        if(vaddr == -1) {
+            cprintf("Cannot find symbol: %s\n", addr);
+            return -1;
+        }
+    }
+    return vaddr;
+}
+
 int udbSetBreakpoint(int argc, char* argv[]) {
     uintptr_t vaddr;
     if(argc == 1) {
         vaddr = 0;
     } else {
-        char* addr = argv[1];
-        if(addr[0] == '*') {
-            vaddr = strToInt(addr + 1);
-        } else {
-            vaddr = getSym(addr);
-            if(vaddr == -1) {
-                cprintf("Cannot find symbol: %s\n", addr);
-                return -1;
-            }
-        }
+        vaddr = getVaddr(argv[1]);
+        if(vaddr < 0)
+            return -1;
     }
     uint32_t retAddr = doSysDebug(DEBUG_SETBREAKPOINT, vaddr);
     cprintf("Breakpoint set at 0x%x\n", retAddr);
@@ -190,6 +198,18 @@ int udbPrint(int argc, char* argv[]) {
     if(argc == 1)
         return;
     char* s = argv[1];
+    uint32_t vaddr;
+    if(s[0] == '$')
+        cprintf("reg施工中\n");
+    else {
+        vaddr = getVaddr(s);
+        if(vaddr == -1)
+            return -1;
+    }
+    subArgv[0] = vaddr;
+    subArgv[1] = buf;
+    int result = doSysDebug(DEBUG_PRINT, subArgv);
+    cprintf("0x%x : %s\n", vaddr, subArgv[1]);
 }
 
 int doHelp(int argc, char* argv[]);

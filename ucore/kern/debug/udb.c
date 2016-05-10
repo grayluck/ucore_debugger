@@ -29,6 +29,13 @@ void udbSleep() {
     local_intr_restore(intr_flag);
     schedule();
 }
+
+uintptr_t* udbGetKaddr(struct proc_struct* proc, uintptr_t vaddr) {
+    uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
+    struct Page * page = get_page(proc->mm->pgdir, la, NULL);
+    return (uintptr_t*)(page2kva(page) + (vaddr - la));
+}
+
 /*
 int udbSetInstBp(struct proc_struct* proc, uintptr_t vaddr) {
     uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
@@ -113,6 +120,12 @@ int udbStepInto(struct proc_struct* proc) {
     udbContinue(proc);
 }
 
+int udbPrint(struct proc_struct* proc, char* arg[]) {
+    uintptr_t* vaddr = arg[0];
+    uintptr_t* kaddr = udbGetKaddr(proc, vaddr);
+    snprintf(arg[1], 1024, "0x%x", *kaddr);
+}
+
 int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
     struct proc_struct* proc = find_proc(pid);
     switch(sig) {
@@ -130,6 +143,9 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
         break;
         case DEBUG_STEPINTO:
             return udbStepInto(proc);
+        break;
+        case DEBUG_PRINT:
+            return udbPrint(proc, arg);
         break;
     }
 }

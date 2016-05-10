@@ -84,6 +84,7 @@ enum DebugSignal {
     DEBUG_STEPINTO = 3,
     DEBUG_SETBREAKPOINT = 4, 
     DEBUG_DELBREAKPOINT = 5, 
+    DEBUG_PRINT = 6, 
 };
 
 #endif /* !__LIBS_DEFS_H__ */
