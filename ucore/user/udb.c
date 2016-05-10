@@ -14,8 +14,10 @@
 #define WHITESPACE                      " \t\r\n"
 #define SYMBOLS                         "<|>&;"
 
+#define MAXSYMLEN                       64
+
 char *
-readline(const char *prompt) {
+readl_fd(const char *prompt, int fd) {
     static char buffer[BUFSIZE];
     if (prompt != NULL) {
         printf("%s", prompt);
@@ -23,7 +25,7 @@ readline(const char *prompt) {
     int ret, i = 0;
     while (1) {
         char c;
-        if ((ret = read(0, &c, sizeof(char))) < 0) {
+        if ((ret = read(fd, &c, sizeof(char))) < 0) {
             return NULL;
         }
         else if (ret == 0) {
@@ -38,20 +40,33 @@ readline(const char *prompt) {
             return NULL;
         }
         else if (c >= ' ' && i < BUFSIZE - 1) {
-            putc(c);
+            if(fd == 0)
+                putc(c);
             buffer[i ++] = c;
         }
         else if (c == '\b' && i > 0) {
-            putc(c);
+            if(fd == 0)
+                putc(c);
             i --;
         }
         else if (c == '\n' || c == '\r') {
-            putc(c);
+            if(fd == 0)
+                putc(c);
             buffer[i] = '\0';
             break;
         }
     }
     return buffer;
+}
+
+char *
+readl_raw(const char *prompt) {
+    return readl_fd(prompt, 0);
+}
+
+char *
+readl(int fd) {
+    return readl_fd(NULL, fd);
 }
 
 char** split(char* s) {
@@ -78,27 +93,57 @@ uint32_t pid;
 
 char* subArgv[EXEC_MAX_ARG_NUM + 1];
 
-#define MAXSYM 200
+#define MAXSYM 256
 #define MAXBUF 1024
 
-char* sym[MAXSYM];
+struct Symbol {
+    char name[MAXSYMLEN + 1];
+    uint32_t addr;
+} sym[MAXSYM];
 int symn = 0;
 
 char buf[MAXBUF];
 char target[MAXBUF];
 
 void uninit() {
-    cprintf("child has exited.");
+    cprintf("child has exited.\n");
     exit(0);
 }
 
 void readSym() {
     symn = 0;
     strcpy(buf, target);
-    char* tmp = strcat(buf, ".sym");
+    strcat(buf, ".sym");
+    int fil = open(buf, O_RDONLY);
+    if(fil < 0)
+        cprintf("Failed to load sym file : %s.\n", buf);
+    char* tmp;
+    while(1) {
+        tmp = readl(fil);
+        if(tmp == 0)
+            break;
+        char** s = split(tmp);
+        if(strlen(s[1]) > MAXSYMLEN) {
+            cprintf("Symbol length too long: %d out of %d\n", strlen(s[1]), MAXSYMLEN);
+            s[1][MAXSYMLEN] = 0;
+        }
+        strcpy(sym[symn].name, s[1]);
+        sym[symn].addr = strtol(s[0], 0, 16);
+        symn ++;
+        if(symn == MAXSYM) {
+            cprintf("Symbol list is full.\n");
+            break;
+        }
+    }
+    close(fil);
+    cprintf("Symbol loaded. %d entries found.\n", symn);
 }
 
 uintptr_t getSym(char* s) {
+    for(int i = 0; i < symn; ++i) {
+        if(strcmp(sym[i].name, s) == 0)
+            return sym[i].addr;
+    }
     return -1;
 }
 
@@ -141,6 +186,12 @@ int udbSetBreakpoint(int argc, char* argv[]) {
     cprintf("Breakpoint set at 0x%x\n", retAddr);
 }
 
+int udbPrint(int argc, char* argv[]) {
+    if(argc == 1)
+        return;
+    char* s = argv[1];
+}
+
 int doHelp(int argc, char* argv[]);
 
 struct command {
@@ -155,6 +206,7 @@ static struct command commands[] = {
     {"continue", "c", "Continue running.", udbContinue},
     {"step", "s", "Step into.", udbStepInto},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
+    {"print", "p", "Print an expression for once", udbPrint},
 };
 
 #define NCOMMANDS (sizeof(commands)/sizeof(struct command))
@@ -179,7 +231,7 @@ int main(int argc, char* argv[]) {
     char* inp_raw;
     while(1) {
         udbWait();
-        inp_raw = readline("udb>");
+        inp_raw = readl_raw("udb>");
         if(inp_raw == NULL)
             break;
         char** inp = split(inp_raw);
