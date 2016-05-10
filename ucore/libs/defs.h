@@ -80,8 +80,10 @@ uint32_t __n = (uint32_t)(n);                           \
 enum DebugSignal {
     DEBUG_ATTACH = 0,
     DEBUG_WAIT = 1,
-    DEBUG_BREAKPOINT = 2, 
-    DEBUG_CONTINUE = 3
+    DEBUG_CONTINUE = 2,
+    DEBUG_STEPINTO = 3,
+    DEBUG_SETBREAKPOINT = 4, 
+    DEBUG_DELBREAKPOINT = 5, 
 };
 
 #endif /* !__LIBS_DEFS_H__ */
