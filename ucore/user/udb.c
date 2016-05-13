@@ -212,6 +212,11 @@ int udbPrint(int argc, char* argv[]) {
     cprintf("0x%x : %s\n", vaddr, subArgv[1]);
 }
 
+int udbQuit(int argc, char* argv[]) {
+    cprintf("Quit.");
+    exit(0);
+}
+
 int doHelp(int argc, char* argv[]);
 
 struct command {
@@ -227,6 +232,7 @@ static struct command commands[] = {
     {"step", "s", "Step into.", udbStepInto},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
     {"print", "p", "Print an expression for once", udbPrint},
+    {"quit", "q", "Quit udb", udbQuit},
 };
 
 #define NCOMMANDS (sizeof(commands)/sizeof(struct command))
