@@ -166,6 +166,10 @@ int udbStepInto(int argc, char* argv[]) {
     doSysDebug(DEBUG_STEPINTO, 0);
 }
 
+int udbStepOver(int argc, char* argv[]) {
+    doSysDebug(DEBUG_STEPOVER, 0);
+}
+
 uint32_t getVaddr(char* s) {
     char* addr = s;
     char* vaddr;
@@ -230,6 +234,7 @@ static struct command commands[] = {
     {"help", "h", "Display this list of commands.", doHelp},
     {"continue", "c", "Continue running.", udbContinue},
     {"step", "s", "Step into.", udbStepInto},
+    // {"next", "n", "Step over.", udbStepOver},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
     {"print", "p", "Print an expression for once", udbPrint},
     {"quit", "q", "Quit udb", udbQuit},

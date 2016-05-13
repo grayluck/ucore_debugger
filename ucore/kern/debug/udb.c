@@ -120,6 +120,12 @@ int udbStepInto(struct proc_struct* proc) {
     udbContinue(proc);
 }
 
+int udbStepOver(struct proc_struct* proc) {
+    uintptr_t pc = current->tf->tf_eip;
+    uint32_t test = udbGetKaddr(proc, pc);
+    udbContinue(proc);
+}
+
 int udbPrint(struct proc_struct* proc, char* arg[]) {
     uintptr_t* vaddr = arg[0];
     uintptr_t* kaddr = udbGetKaddr(proc, vaddr);
@@ -143,6 +149,9 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
         break;
         case DEBUG_STEPINTO:
             return udbStepInto(proc);
+        break;
+        case DEBUG_STEPOVER:
+            return udbStepOver(proc);
         break;
         case DEBUG_PRINT:
             return udbPrint(proc, arg);
