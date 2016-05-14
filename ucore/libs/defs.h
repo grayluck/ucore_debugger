@@ -84,5 +84,19 @@ enum DebugSignal {
     DEBUG_CONTINUE = 3
 };
 
+// definitions for asmparser
+
+#define NO_INFO 0
+#define ASM_CODE 1
+#define GCC_CODE 2
+#define FUNC_DEF 3
+
+struct asminfo {
+    char type;
+    char buf[256];
+    int  pos;
+};
+
+
 #endif /* !__LIBS_DEFS_H__ */
 
