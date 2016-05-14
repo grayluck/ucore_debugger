@@ -80,8 +80,12 @@ uint32_t __n = (uint32_t)(n);                           \
 enum DebugSignal {
     DEBUG_ATTACH = 0,
     DEBUG_WAIT = 1,
-    DEBUG_BREAKPOINT = 2, 
-    DEBUG_CONTINUE = 3
+    DEBUG_CONTINUE = 2,
+    DEBUG_STEPINTO = 3,
+    DEBUG_STEPOVER = 4,
+    DEBUG_SETBREAKPOINT = 5, 
+    DEBUG_DELBREAKPOINT = 6, 
+    DEBUG_PRINT = 7, 
 };
 
 // definitions for asmparser
