@@ -17,6 +17,99 @@
 
 #define MAXSYMLEN                       64
 
+// definitions for asmparser
+
+#define NO_INFO 0
+#define ASM_CODE 1
+#define GCC_CODE 2
+#define FUNC_DEF 3
+
+struct asminfo {
+    char type;
+    char buf[256];
+    int  pos;
+};
+
+int is_hex(const char c) {
+    return (c >= '0' && c <= '9') || (c >= 'a' && c <= 'f');
+}
+
+int hex_to_int(const char c) {
+    if (c >= '0' && c <= '9') {
+        return c - '0';
+    } else if (c >= 'a' && c <= 'f') {
+        return c - 'a' + 10;
+    }
+    return 0;
+}
+
+/* *
+ * asmparse - parse a line in a asm file.
+ */
+void
+asmparse(const char *line, struct asminfo *info) {
+    int i, len;
+    int flag;
+    info->type = 0;
+    info->buf[0] = '\0';
+    info->pos = 0;
+    if (strlen(line) > 10 
+            && is_hex(line[0]) 
+            && is_hex(line[1])
+            && line[9] == '<') {
+        info->type = FUNC_DEF;
+        for (i = 0; i < 8; i++) {
+            info->pos *= 16;
+            info->pos += hex_to_int(line[i]);
+        }
+        for (i = 10; line[i] != '>' && line[i] != '\0'; i++) {
+            info->buf[i-10] = line[i];
+        }
+        info->buf[i-10] = '\0';
+        return;
+    } else if (strlen(line) > 10 
+            && line[0] == ' '
+            && line[1] == ' '
+            && is_hex(line[2])
+            && line[8] == ':') { 
+        info->type = ASM_CODE;
+        for (i = 2; i < 8; i++) {
+            info->pos *= 16;
+            info->pos += hex_to_int(line[i]);
+        }
+        len = strlen(line);
+        flag = 0;
+        for (i = 2; i < len && flag < 2; i++) {
+            if (line[i] == '\t') {
+                flag++;
+            }
+        }
+        strcpy(info->buf, line+i);
+    } else {
+        info->type = GCC_CODE;
+        strcpy(info->buf, line);
+        return;
+    }
+}
+
+
+struct sym_node {
+    int pos;
+    char *val;
+};
+
+char bf[BUFSIZE * 1024];
+int bf_n = -1;
+// Assembly code
+struct sym_node assym[BUFSIZE * 8];
+int as_n = 0;
+// C code
+struct sym_node gcsym[BUFSIZE * 8];
+int gc_n = 0;
+// Function code
+struct sym_node fnsym[BUFSIZE * 8];
+int fn_n = 0;
+
 char *
 readl_fd(const char *prompt, int fd) {
     static char buffer[BUFSIZE];
@@ -147,6 +240,61 @@ uintptr_t getSym(char* s) {
     }
     return -1;
 }
+
+///////////////// parsing asm file ////////////////
+//
+void load_asm() {
+    as_n = gc_n = fn_n = 0;
+    bf_n = -1;
+    struct asminfo info;
+    strcpy(buf, target);
+    strcat(buf, ".asm");
+    int fil = open(buf, O_RDONLY);
+    int len, i;
+    if(fil < 0)
+        cprintf("Failed to load asm file : %s.\n", buf);
+    char* tmp;
+    while(1) {
+        tmp = readl(fil);
+        if (tmp == 0) {
+            break;
+        }
+        asmparse(tmp, &info);
+        if (info.type == FUNC_DEF) {
+            fnsym[fn_n].pos = info.pos;
+            fnsym[fn_n].val = bf + bf_n + 1;
+            strcpy(fnsym[fn_n].val, info.buf);
+            bf_n = bf_n + strlen(info.buf) + 1;
+            fn_n ++;
+        } else if (info.type == ASM_CODE) {
+            assym[as_n].pos = info.pos;
+            assym[as_n].val = bf + bf_n + 1;
+            strcpy(assym[as_n].val, info.buf);
+            bf_n = bf_n + strlen(info.buf) + 1;
+            // modify pos for c code, so that we know where 
+            // in the memory does the c code points to
+            for (i = gc_n - 1; i >= 0; i--) {
+                if (gcsym[i].pos == 0) {
+                    gcsym[i].pos = info.pos;
+                } else {
+                    break;
+                }
+            }
+            as_n ++;
+        } else if (info.type == GCC_CODE) {
+            gcsym[gc_n].pos = 0;
+            gcsym[gc_n].val = bf + bf_n + 1;
+            strcpy(gcsym[gc_n].val, info.buf);
+            bf_n = bf_n + strlen(info.buf) + 1;
+            gc_n ++;
+        }
+    }
+    close(fil);
+}
+
+
+
+
 
 uint32_t doSysDebug(int sig, int arg) {
     uint32_t ret;
