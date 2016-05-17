@@ -3,10 +3,22 @@
 #include <file.h>
 #include <defs.h>
 #include <unistd.h>
+#include <string.h>
+
+#define BUFSIZE                         4096
+#define MAXSYMLEN                       10240
+
+off_t nextOffset = 0;
+
+int
+load_icode_cont_read(int fd, void *buf, size_t len) {
+    return load_icode_read(fd, buf, len, nextOffset);
+}
 
 int
 load_icode_read(int fd, void *buf, size_t len, off_t offset) {
     int ret;
+    nextOffset = offset + len;
     if ((ret = seek(fd, offset, 0)) != 0) {
         return ret;
     }
@@ -14,6 +26,36 @@ load_icode_read(int fd, void *buf, size_t len, off_t offset) {
         return (ret < 0) ? ret : -1;
     }
     return 0;
+}
+
+char buf[BUFSIZE];
+
+char symBuf[1024 * 1024];   // a symbuf of 1MB
+char* symTab[MAXSYMLEN];
+
+char shstrBuf[16 * 1024];   // a symbuf of 16KB
+char* shstrtab[100];
+
+int findStr(char** arr, char* target) {
+    for(int i = 0; arr[i]; ++i) 
+    if(strcmp(arr[i], target) == 0)
+        return i;
+    return -1;
+}
+
+void findSection(int fd, struct elfhdr* elf, char* target, struct secthdr* header) {
+    struct secthdr __header, *tmpheader = &__header;
+    off_t shoff;
+    int ret;
+    for(int i = 0; i < elf->e_shnum; ++i) {
+        shoff = elf->e_shoff + sizeof(struct secthdr) * i;
+        if ((ret = load_icode_read(fd, tmpheader, sizeof(struct secthdr), shoff)) != 0) 
+            return;
+        if(strcmp(shstrBuf + tmpheader->sh_name, target) == 0) {
+            memcpy(header, tmpheader, sizeof(struct secthdr));
+            return;
+        }
+    }
 }
 
 int loadElf(char* fil) {
@@ -27,72 +69,37 @@ int loadElf(char* fil) {
     if (elf->e_magic != ELF_MAGIC) 
         return -1;
 
-    struct proghdr __ph, *ph = &__ph;
-    uint32_t vm_flags, perm, phnum;
-    for (phnum = 0; phnum < elf->e_phnum; phnum ++) {
-        /*
-        off_t phoff = elf->e_phoff + sizeof(struct proghdr) * phnum;
-        if ((ret = load_icode_read(fd, ph, sizeof(struct proghdr), phoff)) != 0) {
-            goto bad_cleanup_mmap;
-        }
-        if (ph->p_type != ELF_PT_LOAD) {
-            continue ;
-        }
-        if (ph->p_filesz > ph->p_memsz) {
-            ret = -E_INVAL_ELF;
-            goto bad_cleanup_mmap;
-        }
-        if (ph->p_filesz == 0) {
-            continue ;
-        }
-        off_t offset = ph->p_offset;
-        size_t off, size;
-        uintptr_t start = ph->p_va, end, la = ROUNDDOWN(start, PGSIZE);
-
-        ret = -E_NO_MEM;
-
-        end = ph->p_va + ph->p_filesz;
-        while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
-                ret = -E_NO_MEM;
-                goto bad_cleanup_mmap;
-            }
-            off = start - la, size = PGSIZE - off, la += PGSIZE;
-            if (end < la) {
-                size -= la - end;
-            }
-            if ((ret = load_icode_read(fd, page2kva(page) + off, size, offset)) != 0) {
-                goto bad_cleanup_mmap;
-            }
-            start += size, offset += size;
-        }
-        end = ph->p_va + ph->p_memsz;
-
-        if (start < la) {
-            if (start == end) {
-                continue ;
-            }
-            off = start + PGSIZE - la, size = PGSIZE - off;
-            if (end < la) {
-                size -= la - end;
-            }
-            memset(page2kva(page) + off, 0, size);
-            start += size;
-            assert((end < la && start == end) || (end >= la && start == la));
-        }
-        while (start < end) {
-            if ((page = pgdir_alloc_page(mm->pgdir, la, perm)) == NULL) {
-                ret = -E_NO_MEM;
-                goto bad_cleanup_mmap;
-            }
-            off = start - la, size = PGSIZE - off, la += PGSIZE;
-            if (end < la) {
-                size -= la - end;
-            }
-            memset(page2kva(page) + off, 0, size);
-            start += size;
-        }
-        */
+    struct secthdr __header, *header = &__header;
+    
+    off_t shoff, offset;
+    
+    // first : get the name string of each section
+    shoff = elf->e_shoff + sizeof(struct secthdr) * elf->e_shstrndx;
+    if ((ret = load_icode_read(fd, header, sizeof(struct secthdr), shoff)) != 0) 
+        return -1;
+    
+    shoff = header->sh_offset;
+    offset = 0;
+    load_icode_read(fd, shstrBuf, header->sh_size, shoff);
+    shstrtab[0] = 0;
+    int i = 0, j = 0;
+    for(; i < header->sh_size; ++i) {
+        if(shstrBuf[i] == 0)
+            shstrtab[++j] = shstrBuf + i + 1;
     }
+    shstrtab[j] = 0;
+    
+    // loab stab str
+    findSection(fd, elf, ".stabstr", header);
+    shoff = header->sh_offset;
+    load_icode_read(fd, symBuf, header->sh_size, shoff);
+    for(i = 0, j = 0; i < header->sh_size; ++i) {
+        if(symBuf[i] == 0)
+            symTab[++j] = symBuf + i + 1;
+    }
+    symBuf[0] = symBuf[j] = 0;
+    for(j = 1; symTab[j]; ++j)
+        cprintf("%s\n", symTab[j]);
     close(fd);
+    return 0;
 }

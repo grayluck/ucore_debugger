@@ -399,6 +399,7 @@ int doHelp(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
+    /*
     strcpy(target, "test");
     readSym();
     if ((pid = fork()) == 0) {
@@ -424,6 +425,7 @@ int main(int argc, char* argv[]) {
                 commands[i].func(cnt, inp);
             }
         }
-    }
+    }*/
+    loadElf("test");
     return 0;
 }

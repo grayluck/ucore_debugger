@@ -36,6 +36,19 @@ struct proghdr {
     uint32_t p_align;  // required alignment, invariably hardware page size
 };
 
+struct secthdr {
+   uint32_t   sh_name;
+   uint32_t   sh_type;
+   uint32_t   sh_flags;
+   uint32_t   sh_addr;
+   uint32_t   sh_offset;
+   uint32_t   sh_size;
+   uint32_t   sh_link;
+   uint32_t   sh_info;
+   uint32_t   sh_addralign;
+   uint32_t   sh_entsize;
+};
+
 /* values for Proghdr::p_type */
 #define ELF_PT_LOAD                     1
 
