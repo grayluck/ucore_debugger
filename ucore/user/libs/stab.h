@@ -1,6 +1,8 @@
 #ifndef __STAB_H_
 #define __STAB_H_
 
+#include <defs.h>
+
 enum StabSymbol { 
     N_GSYM = 0x20,
     N_FNAME = 0x22,
@@ -53,7 +55,19 @@ enum StabSymbol {
 
 struct DebugInfo {
     enum StabSymbol type;
-    
+    char* soStr, symStr;
+    uint32_t vaddr;
+    uint32_t sourceLine;
+    struct DebugInfo* func;
+};
+
+struct SymTab {
+    uint32_t nameIndex;
+    uint32_t value;
+    uint32_t size;
+    char info;
+    char other;
+    uint16_t relatedSection;
 };
 
 struct DebugInfo* loadStab(char* fil);

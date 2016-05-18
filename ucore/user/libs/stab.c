@@ -41,7 +41,11 @@ load_icode_read(int fd, void *buf, size_t len, off_t offset) {
 
 char buf[BUFSIZE];
 
-char stabstr[1024 * 1024];   // a stabstr of 1MB
+char symstr[128 * 1024];    // 128KB
+struct SymTab symtab[MAXSYMLEN];
+int symtabn = 0;
+
+char stabstr[128 * 1024];   // a stabstr of 128KB
 char* stabstrTab[MAXSYMLEN];
 
 char shstrBuf[16 * 1024];   // a stabstr of 16KB
@@ -83,8 +87,74 @@ void outpStabInfo() {
     }
 }
 
-void buildDebugInfo() {
+void locateFunction(uint32_t pc) {
     
+}
+
+void buildDebugInfo() {
+    int n = 0;
+    char* soStr = 0;
+    uint32_t funBase = 0;
+    struct DebugInfo* func = 0;
+    for(int i = 0; i < stabn; ++i) {
+        switch(stab[i].n_type) {
+            // define source file
+            case N_SO:
+                soStr = stabstr + stab[i].n_strx;
+            break;
+            // define function
+            case N_FUN:
+                funBase = stab[i].n_value;
+                func = &debugInfo[n];
+                debugInfo[n].soStr = soStr;
+                debugInfo[n].vaddr = funBase;
+                debugInfo[n].type = N_FUN;
+                debugInfo[n].func = func;
+                debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                n++;
+            break;
+            // line of source
+            case N_SLINE:
+                debugInfo[n].soStr = soStr;
+                debugInfo[n].vaddr = funBase + stab[i].n_value;
+                debugInfo[n].type = N_SLINE;
+                debugInfo[n].sourceLine = stab[i].n_desc;
+                debugInfo[n].func = func;
+                n++;
+            break;
+            // local symbol
+            case N_LSYM:
+                debugInfo[n].soStr = soStr;
+                debugInfo[n].vaddr = stab[i].n_value;
+                debugInfo[n].type = N_LSYM;
+                debugInfo[n].func = func;
+                debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                n++;
+            break;
+            // parameter symbol
+            case N_PSYM:
+                debugInfo[n].soStr = soStr;
+                debugInfo[n].vaddr = stab[i].n_value;
+                debugInfo[n].type = N_PSYM;
+                debugInfo[n].func = func;
+                debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                n++;
+            break;
+            // global symbol
+            case N_GSYM:
+                debugInfo[n].soStr = soStr;
+                debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                for(int j = 0; j < symtabn; ++j) 
+                if(strcmp(symstr + symtab[j].nameIndex, debugInfo[n].symStr) == 0) {
+                    debugInfo[n].vaddr = symtab[j].value;
+                    break;
+                }
+                debugInfo[n].type = N_LSYM;
+                debugInfo[n].func = func;
+                n++;
+            break;
+        }
+    }
 }
 
 struct DebugInfo* loadStab(char* fil) {
@@ -139,7 +209,22 @@ struct DebugInfo* loadStab(char* fil) {
     cprintf("%x\n", shoff);
     load_icode_read(fd, stab, header->sh_size, shoff);
     stabn = header->sh_size / sizeof(struct Stab);
+    
+    // load global syms
+    findSection(fd, elf, ".strtab", header);
+    shoff = header->sh_offset;
+    load_icode_read(fd, symstr, header->sh_size, shoff);
+    
+    findSection(fd, elf, ".symtab", header);
+    shoff = header->sh_offset;
+    //cprintf("symtab: %d\n", sizeof(struct SymTab));
+    load_icode_read(fd, symtab, header->sh_size, shoff);
+    cprintf("%x %x\n", header->sh_offset, header->sh_size);
+    symtabn = header->sh_size / sizeof(struct SymTab);
     close(fd);
+    
+    // done loading elf file
+    
     buildDebugInfo();
     cprintf("Done. %d entries loaded.\n", stabn);
     return debugInfo;
@@ -164,7 +249,5 @@ void loadCodeFile(char* filename) {
         }
     }
     codeLineTab[cnt] = 0;
-    for(int i = 0; i < cnt; ++i)
-        cprintf("%s\n", codeLineTab[i]);
     close(fd);
 }
