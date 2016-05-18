@@ -266,8 +266,7 @@ $(SFSROOT):
 
 $(SFSIMG): $(SFSROOT) $(SFSBINS) | $(call totarget,mksfs)
 	$(V)dd if=/dev/zero of=$@ bs=1M count=128
-	cp obj/user/*.asm disk0/
-	cp obj/user/*.sym disk0/
+	cp user/*.c disk0/
 	@$(call totarget,mksfs) $@ $(SFSROOT)
 
 $(call create_target,sfs.img)

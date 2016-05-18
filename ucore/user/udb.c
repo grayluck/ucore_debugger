@@ -327,6 +327,9 @@ int udbContinue(int argc, char* argv[]) {
 }
 
 int udbStepInto(int argc, char* argv[]) {
+}
+
+int udbInstStepInto(int argc, char* argv[]) {
     doSysDebug(DEBUG_STEPINTO, 0);
     udbWait();
 }
@@ -404,6 +407,7 @@ static struct command commands[] = {
     {"help", "h", "Display this list of commands.", doHelp},
     {"continue", "c", "Continue running.", udbContinue},
     {"step", "s", "Step into.", udbStepInto},
+    {"stepinst", "si", "Step into (instruction).", udbInstStepInto},
     {"next", "n", "Step over.", udbStepOver},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
     {"print", "p", "Print an expression for once", udbPrint},
@@ -428,6 +432,9 @@ int main(int argc, char* argv[]) {
         exit(0);
     }
     info = loadStab(target);
+    strcpy(buf, target);
+    strcat(buf, ".c");
+    loadCodeFile(buf);
     cprintf("Attached.\n");
     udbWait();
     char* inp_raw;
