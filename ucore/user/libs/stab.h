@@ -55,7 +55,7 @@ enum StabSymbol {
 
 struct DebugInfo {
     enum StabSymbol type;
-    char* soStr, symStr;
+    char* soStr, *symStr;
     uint32_t vaddr;
     uint32_t sourceLine;
     struct DebugInfo* func;
@@ -71,5 +71,6 @@ struct SymTab {
 };
 
 struct DebugInfo* loadStab(char* fil);
+struct DebugInfo* findSymbol(uint32_t pc, char* name);
 
 #endif

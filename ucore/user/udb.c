@@ -378,9 +378,10 @@ int udbPrint(int argc, char* argv[]) {
         result = doSysDebug(DEBUG_PRINT_REG, subArgv);
     }
     else {
-        vaddr = getVaddr(s);
-        if(vaddr == -1)
+        struct DebugInfo* p = findSymbol(pinfo.pc, s);
+        if(p == 0)
             return -1;
+        vaddr = p->vaddr;
     }
     subArgv[0] = vaddr;
     subArgv[1] = buf;

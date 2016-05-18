@@ -20,6 +20,7 @@ struct Stab {
 int stabn;
 
 struct DebugInfo debugInfo[MAXSYMLEN];
+int debugInfon = 0;
 
 int
 load_icode_cont_read(int fd, void *buf, size_t len) {
@@ -87,8 +88,25 @@ void outpStabInfo() {
     }
 }
 
-void locateFunction(uint32_t pc) {
-    
+struct DebugInfo* locateFunction(uint32_t pc) {
+    for(int i = 0; i < debugInfon; ++i) {
+        if(debugInfo[i].type == N_SLINE && debugInfo[i].vaddr == pc)
+            return debugInfo[i].func;
+    }
+    return 0;
+}
+
+struct DebugInfo* findSymbol(uint32_t pc, char* name) {
+    struct DebugInfo* func = locateFunction(pc);
+    if(func == 0)
+        return 0;
+    for(int i = 0; i < debugInfon; ++i) {
+        if(debugInfo[i].func != func || debugInfo[i].symStr == 0)
+            continue;
+        if(strcmp(debugInfo[i].symStr, name) == 0)
+            return &(debugInfo[i]);
+    }
+    return;
 }
 
 void buildDebugInfo() {
@@ -96,7 +114,9 @@ void buildDebugInfo() {
     char* soStr = 0;
     uint32_t funBase = 0;
     struct DebugInfo* func = 0;
+    debugInfo[0].symStr = 0;
     for(int i = 0; i < stabn; ++i) {
+        int nn = n;
         switch(stab[i].n_type) {
             // define source file
             case N_SO:
@@ -120,6 +140,7 @@ void buildDebugInfo() {
                 debugInfo[n].type = N_SLINE;
                 debugInfo[n].sourceLine = stab[i].n_desc;
                 debugInfo[n].func = func;
+                debugInfo[n].symStr = 0;
                 n++;
             break;
             // local symbol
@@ -154,7 +175,14 @@ void buildDebugInfo() {
                 n++;
             break;
         }
+        if(nn != n && debugInfo[n - 1].symStr != 0) {
+            int j;
+            for(j = 0; debugInfo[n - 1].symStr[j] && debugInfo[n - 1].symStr[j] != ':'; ++j);
+            debugInfo[n - 1].symStr[j] = 0;
+            // TODO type discrimination is about to add.
+        }
     }
+    debugInfon = n;
 }
 
 struct DebugInfo* loadStab(char* fil) {
@@ -219,14 +247,13 @@ struct DebugInfo* loadStab(char* fil) {
     shoff = header->sh_offset;
     //cprintf("symtab: %d\n", sizeof(struct SymTab));
     load_icode_read(fd, symtab, header->sh_size, shoff);
-    cprintf("%x %x\n", header->sh_offset, header->sh_size);
     symtabn = header->sh_size / sizeof(struct SymTab);
     close(fd);
     
     // done loading elf file
     
     buildDebugInfo();
-    cprintf("Done. %d entries loaded.\n", stabn);
+    cprintf("Done. %d entries loaded. %d debug information gathered.\n", stabn, debugInfon);
     return debugInfo;
 }
 
