@@ -96,17 +96,36 @@ struct DebugInfo* locateFunction(uint32_t pc) {
     return 0;
 }
 
+struct DebugInfo* findFunc(char* name) {
+    // TODO
+    return 0;
+}
+
 struct DebugInfo* findSymbol(uint32_t pc, char* name) {
     struct DebugInfo* func = locateFunction(pc);
-    if(func == 0)
-        return 0;
-    for(int i = 0; i < debugInfon; ++i) {
-        if(debugInfo[i].func != func || debugInfo[i].symStr == 0)
-            continue;
-        if(strcmp(debugInfo[i].symStr, name) == 0)
-            return &(debugInfo[i]);
+    if(func != 0) {
+        // local symbols first
+        for(int i = 0; i < debugInfon; ++i) {
+            if(debugInfo[i].func != func || debugInfo[i].symStr == 0)
+                continue;
+            if(strcmp(debugInfo[i].symStr, name) == 0)
+                return &(debugInfo[i]);
+        }
     }
-    return;
+    for(int i = 0; i < debugInfon; ++i) {
+        if( debugInfo[i].type == N_GSYM && 
+            debugInfo[i].symStr != 0 && 
+            strcmp(debugInfo[i].symStr, name) == 0)
+                return &(debugInfo[i]);
+    }
+    return 0;
+}
+
+void processSymStr(struct DebugInfo* p) {
+    int j;
+    for(j = 0; p->symStr[j] && p->symStr[j] != ':'; ++j);
+    p->symStr[j] = 0;
+    // TODO type specific process needed
 }
 
 void buildDebugInfo() {
@@ -116,7 +135,6 @@ void buildDebugInfo() {
     struct DebugInfo* func = 0;
     debugInfo[0].symStr = 0;
     for(int i = 0; i < stabn; ++i) {
-        int nn = n;
         switch(stab[i].n_type) {
             // define source file
             case N_SO:
@@ -131,6 +149,7 @@ void buildDebugInfo() {
                 debugInfo[n].type = N_FUN;
                 debugInfo[n].func = func;
                 debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                processSymStr(&debugInfo[n]);
                 n++;
             break;
             // line of source
@@ -150,6 +169,7 @@ void buildDebugInfo() {
                 debugInfo[n].type = N_LSYM;
                 debugInfo[n].func = func;
                 debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                processSymStr(&debugInfo[n]);
                 n++;
             break;
             // parameter symbol
@@ -159,27 +179,30 @@ void buildDebugInfo() {
                 debugInfo[n].type = N_PSYM;
                 debugInfo[n].func = func;
                 debugInfo[n].symStr = stabstr + stab[i].n_strx;
+                processSymStr(&debugInfo[n]);
                 n++;
             break;
             // global symbol
             case N_GSYM:
                 debugInfo[n].soStr = soStr;
                 debugInfo[n].symStr = stabstr + stab[i].n_strx;
-                for(int j = 0; j < symtabn; ++j) 
-                if(strcmp(symstr + symtab[j].nameIndex, debugInfo[n].symStr) == 0) {
-                    debugInfo[n].vaddr = symtab[j].value;
-                    break;
+                processSymStr(&debugInfo[n]);
+                for(int j = 0; j < symtabn; ++j) {
+                    /*
+                    cprintf("%s %s %d\n", 
+                        symstr + symtab[j].nameIndex, 
+                        debugInfo[n].symStr, 
+                        (strcmp(symstr + symtab[j].nameIndex, debugInfo[n].symStr)));
+                    */
+                    if(strcmp(symstr + symtab[j].nameIndex, debugInfo[n].symStr) == 0) {
+                        debugInfo[n].vaddr = symtab[j].value;
+                        break;
+                    }    
                 }
-                debugInfo[n].type = N_LSYM;
+                debugInfo[n].type = N_GSYM;
                 debugInfo[n].func = func;
                 n++;
             break;
-        }
-        if(nn != n && debugInfo[n - 1].symStr != 0) {
-            int j;
-            for(j = 0; debugInfo[n - 1].symStr[j] && debugInfo[n - 1].symStr[j] != ':'; ++j);
-            debugInfo[n - 1].symStr[j] = 0;
-            // TODO type discrimination is about to add.
         }
     }
     debugInfon = n;

@@ -337,7 +337,7 @@ int udbInstStepInto(int argc, char* argv[]) {
 int udbStepOver(int argc, char* argv[]) {
     // TODO
 }
-
+/*
 int getVaddr(char* s) {
     char* addr = s;
     char* vaddr;
@@ -346,19 +346,22 @@ int getVaddr(char* s) {
     } else {
         vaddr = getSym(addr);
         if(vaddr == -1) {
-            cprintf("Cannot find symbol: %s\n", addr);
+            cprintf("Cannot find symbol: %s\n", vaddr);
             return -1;
         }
     }
     return vaddr;
 }
-
+*/
 int udbSetBreakpoint(int argc, char* argv[]) {
     int vaddr;
+    char* s = argv[1];
     if(argc == 1) {
         vaddr = 0;
+    } else if(s[0] == '*') {
+        vaddr = strToInt(s + 1);
     } else {
-        vaddr = getVaddr(argv[1]);
+        vaddr = findFunc(s);
         if(vaddr < 0)
             return -1;
     }
@@ -376,11 +379,14 @@ int udbPrint(int argc, char* argv[]) {
         subArgv[0] = s + 1;
         subArgv[1] = 0;
         result = doSysDebug(DEBUG_PRINT_REG, subArgv);
-    }
-    else {
+    } else if(s[0] == '*') {
+        vaddr = strToInt(s + 1);
+    } else {
         struct DebugInfo* p = findSymbol(pinfo.pc, s);
-        if(p == 0)
+        if(p == 0) {
+            cprintf("Cannot find symbol: %s\n", s);
             return -1;
+        }
         vaddr = p->vaddr;
     }
     subArgv[0] = vaddr;
