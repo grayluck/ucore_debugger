@@ -69,6 +69,8 @@ struct Stab {
 } stab[MAXSYMLEN];
 int stabn;
 
+struct DebugInfo debugInfo[MAXSYMLEN];
+
 int
 load_icode_cont_read(int fd, void *buf, size_t len) {
     return load_icode_read(fd, buf, len, nextOffset);
@@ -119,7 +121,7 @@ void findSection(int fd, struct elfhdr* elf, char* target, struct secthdr* heade
 
 void outpStabInfo() {
     cprintf("%d %d\n", stabn, sizeof(struct Stab));
-    for(i = 0; i < stabn; ++i) {
+    for(int i = 0; i < stabn; ++i) {
         cprintf("%6x %6d %08x %6d %s\n", 
             stab[i].n_type, 
             stab[i].n_desc, stab[i].n_value, stab[i].n_strx,
@@ -127,7 +129,8 @@ void outpStabInfo() {
     }
 }
 
-int loadElf(char* fil) {
+struct DebugInfo* loadStab(char* fil) {
+    cprintf("Loading debug information from elf...");
     if(sizeof(enum StabSymbol) == sizeof(char)) {
         cprintf("Compiler not compatible? %d\n", sizeof(enum StabSymbol));
         return -1;
@@ -179,5 +182,6 @@ int loadElf(char* fil) {
     load_icode_read(fd, stab, header->sh_size, shoff);
     stabn = header->sh_size / sizeof(struct Stab);
     close(fd);
-    return 0;
+    cprintf("Done. %d entries loaded.\n", stabn);
+    return debugInfo;
 }

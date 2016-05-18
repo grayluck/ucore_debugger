@@ -86,6 +86,12 @@ enum DebugSignal {
     DEBUG_SETBREAKPOINT = 5, 
     DEBUG_DELBREAKPOINT = 6, 
     DEBUG_PRINT = 7, 
+    DEBUG_PRINT_REG = 8,
+};
+
+struct DebugProcessInfo {
+    int state;
+    uint32_t pc;
 };
 
 

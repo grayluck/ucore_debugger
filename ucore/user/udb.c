@@ -184,25 +184,38 @@ uintptr_t strToInt(char* s) {
 ///////////// utilities upside //////////////////////
 
 uint32_t pid;
+struct DebugProcessInfo pinfo;
 
 char* subArgv[EXEC_MAX_ARG_NUM + 1];
 
 #define MAXSYM 256
 #define MAXBUF 1024
 
-struct Symbol {
-    char name[MAXSYMLEN + 1];
-    uint32_t addr;
-} sym[MAXSYM];
-int symn = 0;
-
 char buf[MAXBUF];
 char target[MAXBUF];
+
+struct DebugInfo* info = 0;
 
 void uninit() {
     cprintf("child has exited.\n");
     exit(0);
 }
+
+uintptr_t getSym(char* s) {
+    /*
+    for(int i = 0; i < symn; ++i) {
+        if(strcmp(sym[i].name, s) == 0)
+            return sym[i].addr;
+    }*/
+    return -1;
+}
+
+/*
+struct Symbol {
+    char name[MAXSYMLEN + 1];
+    uint32_t addr;
+} sym[MAXSYM];
+int symn = 0;
 
 void readSym() {
     symn = 0;
@@ -291,12 +304,10 @@ void load_asm() {
     }
     close(fil);
 }
-
-
-
-
+*/
 
 uint32_t doSysDebug(int sig, int arg) {
+    // printf("[debug]%d\n", sig);
     uint32_t ret;
     if((ret = sys_debug(pid, sig, arg)) == -1)
         uninit();
@@ -304,22 +315,27 @@ uint32_t doSysDebug(int sig, int arg) {
 }
 
 void udbWait() {
-    doSysDebug(DEBUG_WAIT, 0);
+    doSysDebug(DEBUG_WAIT, &pinfo);
+    if(pinfo.state == -1)
+        uninit();
+    cprintf("[PC]%08x\n", pinfo.pc);
 }
 
 int udbContinue(int argc, char* argv[]) {
     doSysDebug(DEBUG_CONTINUE, 0);
+    udbWait();
 }
 
 int udbStepInto(int argc, char* argv[]) {
     doSysDebug(DEBUG_STEPINTO, 0);
+    udbWait();
 }
 
 int udbStepOver(int argc, char* argv[]) {
-    doSysDebug(DEBUG_STEPOVER, 0);
+    // TODO
 }
 
-uint32_t getVaddr(char* s) {
+int getVaddr(char* s) {
     char* addr = s;
     char* vaddr;
     if(addr[0] == '*') {
@@ -335,7 +351,7 @@ uint32_t getVaddr(char* s) {
 }
 
 int udbSetBreakpoint(int argc, char* argv[]) {
-    uintptr_t vaddr;
+    int vaddr;
     if(argc == 1) {
         vaddr = 0;
     } else {
@@ -350,10 +366,14 @@ int udbSetBreakpoint(int argc, char* argv[]) {
 int udbPrint(int argc, char* argv[]) {
     if(argc == 1)
         return;
+    int result;
     char* s = argv[1];
     uint32_t vaddr;
-    if(s[0] == '$')
-        cprintf("reg施工中\n");
+    if(s[0] == '$') {
+        subArgv[0] = s + 1;
+        subArgv[1] = 0;
+        result = doSysDebug(DEBUG_PRINT_REG, subArgv);
+    }
     else {
         vaddr = getVaddr(s);
         if(vaddr == -1)
@@ -361,7 +381,8 @@ int udbPrint(int argc, char* argv[]) {
     }
     subArgv[0] = vaddr;
     subArgv[1] = buf;
-    int result = doSysDebug(DEBUG_PRINT, subArgv);
+    subArgv[2] = 0;
+    result = doSysDebug(DEBUG_PRINT, subArgv);
     cprintf("0x%x : %s\n", vaddr, subArgv[1]);
 }
 
@@ -383,7 +404,7 @@ static struct command commands[] = {
     {"help", "h", "Display this list of commands.", doHelp},
     {"continue", "c", "Continue running.", udbContinue},
     {"step", "s", "Step into.", udbStepInto},
-    // {"next", "n", "Step over.", udbStepOver},
+    {"next", "n", "Step over.", udbStepOver},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
     {"print", "p", "Print an expression for once", udbPrint},
     {"quit", "q", "Quit udb", udbQuit},
@@ -399,19 +420,18 @@ int doHelp(int argc, char* argv[]) {
 }
 
 int main(int argc, char* argv[]) {
-    /*
     strcpy(target, "test");
-    readSym();
     if ((pid = fork()) == 0) {
         subArgv[0] = target;
         subArgv[1] = NULL;
         sys_debug(0, DEBUG_ATTACH, subArgv);
         exit(0);
     }
+    info = loadStab(target);
     cprintf("Attached.\n");
+    udbWait();
     char* inp_raw;
     while(1) {
-        udbWait();
         inp_raw = readl_raw("udb>");
         if(inp_raw == NULL)
             break;
@@ -425,7 +445,6 @@ int main(int argc, char* argv[]) {
                 commands[i].func(cnt, inp);
             }
         }
-    }*/
-    loadElf("test");
+    }
     return 0;
 }

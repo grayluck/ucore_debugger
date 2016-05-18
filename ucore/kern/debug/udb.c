@@ -83,7 +83,7 @@ int udbAttach(char* argv[]) {
     return 0;
 }
 
-int udbWait(struct proc_struct* proc) {
+int udbWait(struct proc_struct* proc, struct DebugProcessInfo* pinfo) {
     struct proc_struct* childProc = proc;
     switch(childProc->state) {
     case PROC_SLEEPING:
@@ -98,6 +98,8 @@ int udbWait(struct proc_struct* proc) {
         return -1;
         break;
     }
+    pinfo->state = (proc->state == PROC_ZOMBIE?-1:0);
+    pinfo->pc = proc->tf->tf_eip;
     return 0;
 }
 
@@ -132,6 +134,29 @@ int udbPrint(struct proc_struct* proc, char* arg[]) {
     snprintf(arg[1], 1024, "0x%x", *kaddr);
 }
 
+char* regTab[9] = {
+    "edi", 
+    "esi", 
+    "ebp",
+    "oesp",
+    "ebx", 
+    "edx",
+    "ecx",
+    "eax",
+    0
+};
+
+int udbPrintReg(struct proc_struct* proc, char* arg[]) {
+    char* regStr = arg[0];
+    for(int i = 0; regTab[i]; ++i) {
+        if(strcmp(regTab[i], regStr) == 0) {
+            cprintf("0x08x\n", *((uint32_t*)(&(proc->tf->tf_regs)) + i));
+            break;
+        }
+    }
+    return -1;
+}
+
 int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
     struct proc_struct* proc = find_proc(pid);
     switch(sig) {
@@ -139,7 +164,7 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
             return udbAttach(arg);
         break;
         case DEBUG_WAIT:
-            return udbWait(proc);
+            return udbWait(proc, arg);
         break;
         case DEBUG_SETBREAKPOINT:
             return udbSetBp(proc, arg);
@@ -155,6 +180,9 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
         break;
         case DEBUG_PRINT:
             return udbPrint(proc, arg);
+        break;
+        case DEBUG_PRINT_REG:
+            return udbPrintReg(proc, arg);
         break;
     }
 }
@@ -185,7 +213,7 @@ void udbStepTrap() {
     //cprintf("0x%x\n", pc);
     nextStepCount = nextStepCount-1<0?-1:nextStepCount-1;
     if(nextStepCount == 0 || udbFindBp(pc) >= 0) {
-        cprintf("0x%x\n", pc);
+        // cprintf("0x%x\n", pc);
         struct proc_struct* parent = current->parent;
         switch(parent->state) {
         case PROC_SLEEPING:
