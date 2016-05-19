@@ -140,10 +140,11 @@ struct DebugInfo* findSymbol(uint32_t pc, char* name) {
     if(func != 0) {
         // local symbols first
         for(int i = 0; i < debugInfon; ++i) {
-            if(debugInfo[i].func != func || debugInfo[i].symStr == 0)
+            if( debugInfo[i].func != func || debugInfo[i].symStr == 0)
                 continue;
-            if(strcmp(debugInfo[i].symStr, name) == 0)
-                return &(debugInfo[i]);
+            if(debugInfo[i].type == N_LSYM || debugInfo[i].type == N_PSYM)
+                if(strcmp(debugInfo[i].symStr, name) == 0)
+                    return &(debugInfo[i]);
         }
     }
     for(int i = 0; i < debugInfon; ++i) {

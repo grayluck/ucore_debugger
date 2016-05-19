@@ -33,6 +33,8 @@ void udbSleep() {
 uintptr_t* udbGetKaddr(struct proc_struct* proc, uintptr_t vaddr) {
     uintptr_t la = ROUNDDOWN(vaddr, PGSIZE);
     struct Page * page = get_page(proc->mm->pgdir, la, NULL);
+    if(page == NULL)
+        return 0;
     return (uintptr_t*)(page2kva(page) + (vaddr - la));
 }
 
@@ -124,7 +126,7 @@ int udbStepInto(struct proc_struct* proc) {
 
 int udbStepOver(struct proc_struct* proc) {
     uintptr_t pc = current->tf->tf_eip;
-    uint32_t test = udbGetKaddr(proc, pc);
+    // uint32_t test = udbGetKaddr(proc, pc);
     udbContinue(proc);
 }
 
@@ -138,7 +140,10 @@ int udbPrint(struct proc_struct* proc, char* arg[]) {
         uintptr_t* uaddr = proc->tf->tf_regs.reg_ebp + (int)vaddr;
         kaddr = udbGetKaddr(proc, uaddr);
     }
-    snprintf(arg[1], 1024, "%d", *kaddr);
+    if(kaddr == 0)
+        snprintf(arg[1], 1024, "Cannot access corresponding memory");
+    else
+        snprintf(arg[1], 1024, "%d", *kaddr);
 }
 
 char* regTab[9] = {

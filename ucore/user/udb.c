@@ -459,7 +459,7 @@ int udbList(int argc, char* argv[]) {
 }
 
 int udbQuit(int argc, char* argv[]) {
-    cprintf("Quit.");
+    cprintf("Quit.\n");
     exit(0);
 }
 
