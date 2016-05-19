@@ -55,6 +55,20 @@ char* shstrtab[100];
 char loadedFile[256];
 char codeLine[128 * 1024];  // maximum code file limitation: 128KB
 char* codeLineTab[16 * 1024];   // cant be more than 16*1024 lines
+int codeLineN = 0;
+
+
+int printCodeLine(char* source, int line) {
+    cprintf("%s %d\n", source, line);
+    if(strcmp(source, loadedFile) != 0) {
+        cprintf("[%s] not loaded.\n", source);
+        return -1;
+    }
+    if(line > codeLineN)
+        return -1;
+    cprintf("%4d %s\n", line, codeLineTab[line]);
+    return 0;
+}
 
 int findStr(char** arr, char* target) {
     for(int i = 0; arr[i]; ++i) 
@@ -126,6 +140,18 @@ struct DebugInfo* findSymbol(uint32_t pc, char* name) {
     return 0;
 }
 
+struct DebugInfo* findSline(uint32_t pc) {
+    struct DebugInfo* ret = 0;
+    for(int i = 0; i < debugInfon; ++i) {
+        if( debugInfo[i].type == N_SLINE && 
+            debugInfo[i].vaddr <= pc) {
+            if(ret == 0 || ret->vaddr < debugInfo[i].vaddr)
+                ret = &(debugInfo[i]);
+        }
+    }
+    return ret;
+}
+
 void processSymStr(struct DebugInfo* p) {
     int j;
     for(j = 0; p->symStr[j] && p->symStr[j] != ':'; ++j);
@@ -143,7 +169,7 @@ void buildDebugInfo() {
         switch(stab[i].n_type) {
             // define source file
             case N_SO:
-                soStr = stabstr + stab[i].n_strx;
+                soStr = stabstr + stab[i].n_strx + 5;
             break;
             // define function
             case N_FUN:
@@ -294,8 +320,8 @@ void loadCodeFile(char* filename) {
     }
     int ret = read(fd, codeLine, sizeof(codeLine));
     cprintf("%d byte loaded.\n", ret);
-    int cnt = 0;
-    codeLineTab[0] = codeLine;
+    int cnt = 1;
+    codeLineTab[1] = codeLine;
     int n = strlen(codeLine);
     for(int i = 0; i < n; ++i) {
         if(codeLine[i] == '\n') {
@@ -304,5 +330,6 @@ void loadCodeFile(char* filename) {
         }
     }
     codeLineTab[cnt] = 0;
+    codeLineN = cnt - 1;
     close(fd);
 }

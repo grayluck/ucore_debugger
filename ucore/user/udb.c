@@ -193,6 +193,7 @@ char* subArgv[EXEC_MAX_ARG_NUM + 1];
 
 char buf[MAXBUF];
 char target[MAXBUF];
+char loadedSource[MAXBUF];
 
 struct DebugInfo* info = 0;
 
@@ -330,15 +331,21 @@ int udbStepInto(int argc, char* argv[]) {
 }
 
 int udbInstStepInto(int argc, char* argv[]) {
-    doSysDebug(DEBUG_STEPINTO, 0);
-    udbWait();
 }
 
 int udbStepOver(int argc, char* argv[]) {
-    // TODO
+    struct DebugInfo* p = 0;
+    while(!(p && strcmp(p->soStr, loadedSource) == 0)) {
+        doSysDebug(DEBUG_STEPINTO, 0);
+        udbWait();
+        p = findSline(pinfo.pc);
+        if(p)
+            cprintf("%s\n", p->soStr);
+    }
+    printCodeLine(p->soStr, p->sourceLine);
 }
 /*
-int getVaddr(char* s) {
+int getVaddr(char* s) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
     char* addr = s;
     char* vaddr;
     if(addr[0] == '*') {
@@ -370,6 +377,7 @@ int udbSetBreakpoint(int argc, char* argv[]) {
     }
     uint32_t retAddr = doSysDebug(DEBUG_SETBREAKPOINT, vaddr);
     cprintf("Breakpoint set at 0x%x\n", retAddr);
+    return 0;
 }
 
 int udbPrint(int argc, char* argv[]) {
@@ -397,6 +405,18 @@ int udbPrint(int argc, char* argv[]) {
     subArgv[2] = 0;
     result = doSysDebug(DEBUG_PRINT, subArgv);
     cprintf("0x%x : %s\n", vaddr, subArgv[1]);
+    return 0;
+}
+
+int udbList(int argc, char* argv[]) {
+    struct DebugInfo* p = findSline(pinfo.pc);
+    if(p == 0) {
+        cprintf("No source code to be shown.\n");
+        return -1;
+    }
+    for(int i = p->sourceLine; 
+        i < p->sourceLine + 10 && printCodeLine(p->soStr, i) == 0; 
+        ++i);
 }
 
 int udbQuit(int argc, char* argv[]) {
@@ -420,6 +440,7 @@ static struct command commands[] = {
     {"stepinst", "si", "Step into (instruction).", udbInstStepInto},
     {"next", "n", "Step over.", udbStepOver},
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
+    {"list", "l", "List source code", udbList},
     {"print", "p", "Print an expression for once", udbPrint},
     {"quit", "q", "Quit udb", udbQuit},
 };
@@ -444,6 +465,7 @@ int main(int argc, char* argv[]) {
     info = loadStab(target);
     strcpy(buf, target);
     strcat(buf, ".c");
+    strcpy(loadedSource, buf);
     loadCodeFile(buf);
     cprintf("Attached.\n");
     udbWait();
