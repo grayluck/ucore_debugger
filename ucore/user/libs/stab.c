@@ -203,6 +203,9 @@ void buildDebugInfo() {
                 debugInfo[n].sourceLine = stab[i].n_desc;
                 debugInfo[n].func = func;
                 debugInfo[n].symStr = 0;
+                debugInfo[n].mark = 1;
+                if(n > 0 && debugInfo[n-1].type == N_SLINE)
+                    debugInfo[n-1].mark = 0;
                 n++;
             break;
             // local symbol

@@ -59,6 +59,7 @@ struct DebugInfo {
     uint32_t vaddr;
     uint32_t sourceLine;
     struct DebugInfo* func;
+    int mark;
 };
 
 struct SymTab {
