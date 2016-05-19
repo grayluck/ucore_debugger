@@ -97,7 +97,12 @@ struct DebugInfo* locateFunction(uint32_t pc) {
 }
 
 struct DebugInfo* findFunc(char* name) {
-    // TODO
+    for(int i = 0; i < debugInfon; ++i) {
+        if( debugInfo[i].type == N_FUN &&
+            strcmp(debugInfo[i].symStr, name) == 0) {
+            return &(debugInfo[i]);
+        }
+    }
     return 0;
 }
 

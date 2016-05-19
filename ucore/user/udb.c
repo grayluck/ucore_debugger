@@ -361,9 +361,12 @@ int udbSetBreakpoint(int argc, char* argv[]) {
     } else if(s[0] == '*') {
         vaddr = strToInt(s + 1);
     } else {
-        vaddr = findFunc(s);
-        if(vaddr < 0)
+        struct DebugInfo* p = findFunc(s);
+        if(p <= 0) {
+            cprintf("Cannot find function: %s\n", s);
             return -1;
+        }
+        vaddr = p->vaddr;
     }
     uint32_t retAddr = doSysDebug(DEBUG_SETBREAKPOINT, vaddr);
     cprintf("Breakpoint set at 0x%x\n", retAddr);
