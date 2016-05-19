@@ -195,6 +195,8 @@ char buf[MAXBUF];
 char target[MAXBUF];
 char loadedSource[MAXBUF];
 
+char lastInput[MAXBUF];
+
 struct DebugInfo* info = 0;
 
 void uninit() {
@@ -332,8 +334,7 @@ int udbContinue(int argc, char* argv[]) {
 int udbStepInto(int argc, char* argv[]) {
     struct DebugInfo* p = 0;
     while(!(p && 
-            p->vaddr == pinfo.pc && 
-            strcmp(p->soStr, loadedSource) == 0)) {
+            p->vaddr == pinfo.pc)) {
         doSysDebug(DEBUG_STEPINTO, 0);
         udbWait();
         p = findSline(pinfo.pc);
@@ -502,6 +503,10 @@ int main(int argc, char* argv[]) {
         inp_raw = readl_raw("udb>");
         if(inp_raw == NULL)
             break;
+        if(strlen(inp_raw) == 0)
+            inp_raw = lastInput;
+        else
+            strcpy(lastInput, inp_raw);
         char** inp = split(inp_raw);
         int cnt = 0;
         while(inp[cnt]) cnt++;

@@ -79,7 +79,10 @@ int printCodeLineByDinfo(struct DebugInfo* p) {
         lastDebugInfo->func != p->func)
             cprintf("function [%s] at %s:%d\n", p->func->symStr, p->soStr, p->sourceLine);
     lastDebugInfo = p;
-    return printCodeLine(p->soStr, p->sourceLine);
+    int ret = printCodeLine(p->soStr, p->sourceLine);
+    if(ret != 0)
+        cprintf("0x%08x\n", p->vaddr);
+    return ret;
 }
 
 int findStr(char** arr, char* target) {
