@@ -130,8 +130,15 @@ int udbStepOver(struct proc_struct* proc) {
 
 int udbPrint(struct proc_struct* proc, char* arg[]) {
     uintptr_t* vaddr = arg[0];
-    uintptr_t* kaddr = udbGetKaddr(proc, vaddr);
-    snprintf(arg[1], 1024, "0x%x", *kaddr);
+    int type = arg[2];
+    uintptr_t* kaddr;
+    if(type == 0)
+        kaddr = udbGetKaddr(proc, vaddr);
+    else {
+        uintptr_t* uaddr = proc->tf->tf_regs.reg_ebp + (int)vaddr;
+        kaddr = udbGetKaddr(proc, uaddr);
+    }
+    snprintf(arg[1], 1024, "%d", *kaddr);
 }
 
 char* regTab[9] = {
@@ -151,7 +158,7 @@ int udbPrintReg(struct proc_struct* proc, char* arg[]) {
     for(int i = 0; regTab[i]; ++i) {
         if(strcmp(regTab[i], regStr) == 0) {
             cprintf("0x08x\n", *((uint32_t*)(&(proc->tf->tf_regs)) + i));
-            break;
+            return 0;
         }
     }
     return -1;

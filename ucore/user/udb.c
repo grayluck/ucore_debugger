@@ -421,6 +421,12 @@ int udbPrint(int argc, char* argv[]) {
         result = doSysDebug(DEBUG_PRINT_REG, subArgv);
     } else if(s[0] == '*') {
         vaddr = strToInt(s + 1);
+        subArgv[0] = vaddr;
+        subArgv[1] = buf;
+        subArgv[2] = 0;
+        subArgv[3] = 0;
+        result = doSysDebug(DEBUG_PRINT, subArgv);
+        cprintf("0x%08x : %s\n", vaddr, subArgv[1]);
     } else {
         struct DebugInfo* p = findSymbol(pinfo.pc, s);
         if(p == 0) {
@@ -428,12 +434,16 @@ int udbPrint(int argc, char* argv[]) {
             return -1;
         }
         vaddr = p->vaddr;
+        int type = 0;
+        if(p->type != N_GSYM)
+            type = 1;
+        subArgv[0] = vaddr;
+        subArgv[1] = buf;
+        subArgv[2] = type;
+        subArgv[3] = 0;
+        result = doSysDebug(DEBUG_PRINT, subArgv);
+        cprintf("%s : %s\n", s, subArgv[1]);
     }
-    subArgv[0] = vaddr;
-    subArgv[1] = buf;
-    subArgv[2] = 0;
-    result = doSysDebug(DEBUG_PRINT, subArgv);
-    cprintf("0x%x : %s\n", vaddr, subArgv[1]);
     return 0;
 }
 

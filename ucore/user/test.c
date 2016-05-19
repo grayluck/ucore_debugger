@@ -9,8 +9,11 @@ void testSubFunc() {
     cprintf("Test sub func.\n");
 }
 
-void testFunc() {
-    int partial = 1;
+void testFunc(int arg0, int arg1) {
+    int partial = 333;
+    cprintf("%x\n", &partial);
+    partial = arg0;
+    partial = arg1;
     testSubFunc();
     cprintf("Test func.\n");
 }
@@ -18,7 +21,7 @@ void testFunc() {
 int main(void) {
     cprintf("%d\n", testValue);
     testValue = 2;
-    testFunc();
+    testFunc(111, 222);
     testValue = 3;
     cprintf("%d\n", testValue);
     return 0;
