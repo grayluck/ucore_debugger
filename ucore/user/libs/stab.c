@@ -57,23 +57,35 @@ char codeLine[128 * 1024];  // maximum code file limitation: 128KB
 char* codeLineTab[16 * 1024];   // cant be more than 16*1024 lines
 int codeLineN = 0;
 
+struct DebugInfo* lastDebugInfo = 0;
 
 int printCodeLine(char* source, int line) {
-    cprintf("%s %d\n", source, line);
+    // cprintf("%s %d\n", source, line);
     if(strcmp(source, loadedFile) != 0) {
         cprintf("[%s] not loaded.\n", source);
         return -1;
     }
     if(line > codeLineN)
         return -1;
-    cprintf("%4d %s\n", line, codeLineTab[line]);
+    cprintf("%4d    %s\n", line, codeLineTab[line]);
     return 0;
+}
+
+int printCodeLineByDinfo(struct DebugInfo* p) {
+    if(p == 0 || p->type != N_SLINE)
+        return -1;
+    if( lastDebugInfo == 0 || 
+        lastDebugInfo->soStr != p->soStr || 
+        lastDebugInfo->func != p->func)
+            cprintf("function [%s] at %s:%d\n", p->func->symStr, p->soStr, p->sourceLine);
+    lastDebugInfo = p;
+    return printCodeLine(p->soStr, p->sourceLine);
 }
 
 int findStr(char** arr, char* target) {
     for(int i = 0; arr[i]; ++i) 
-    if(strcmp(arr[i], target) == 0)
-        return i;
+        if(strcmp(arr[i], target) == 0)
+            return i;
     return -1;
 }
 

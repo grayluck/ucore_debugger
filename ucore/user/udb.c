@@ -319,30 +319,35 @@ void udbWait() {
     doSysDebug(DEBUG_WAIT, &pinfo);
     if(pinfo.state == -1)
         uninit();
-    cprintf("[PC]%08x\n", pinfo.pc);
+    // cprintf("0x%08x\n", pinfo.pc);
 }
 
 int udbContinue(int argc, char* argv[]) {
     doSysDebug(DEBUG_CONTINUE, 0);
     udbWait();
+    struct DebugInfo* p = findSline(pinfo.pc);
+    printCodeLineByDinfo(p);
 }
 
 int udbStepInto(int argc, char* argv[]) {
-}
-
-int udbInstStepInto(int argc, char* argv[]) {
-}
-
-int udbStepOver(int argc, char* argv[]) {
     struct DebugInfo* p = 0;
-    while(!(p && strcmp(p->soStr, loadedSource) == 0)) {
+    while(!(p && 
+            p->vaddr == pinfo.pc && 
+            strcmp(p->soStr, loadedSource) == 0)) {
         doSysDebug(DEBUG_STEPINTO, 0);
         udbWait();
         p = findSline(pinfo.pc);
-        if(p)
-            cprintf("%s\n", p->soStr);
     }
-    printCodeLine(p->soStr, p->sourceLine);
+    printCodeLineByDinfo(p);
+}
+
+int udbInstStepInto(int argc, char* argv[]) {
+    doSysDebug(DEBUG_STEPINTO, 0);
+    udbWait();
+    cprintf("0x%08x\n", pinfo.pc);
+}
+
+int udbStepOver(int argc, char* argv[]) {
 }
 /*
 int getVaddr(char* s) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
