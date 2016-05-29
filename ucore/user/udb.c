@@ -24,6 +24,8 @@
 #define GCC_CODE 2
 #define FUNC_DEF 3
 
+char *empty_string = "(assembly not loaded)";
+
 struct asminfo {
     char type;
     char buf[256];
@@ -311,7 +313,7 @@ char *find_asm_by_pos(uint32_t pos) {
             return assym[i].val;
         }
     }
-    return assym[0].val;
+    return empty_string;
 }
 
 uint32_t doSysDebug(int sig, int arg) {
