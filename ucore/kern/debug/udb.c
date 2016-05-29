@@ -140,10 +140,14 @@ int udbPrint(struct proc_struct* proc, char* arg[]) {
         uintptr_t* uaddr = proc->tf->tf_regs.reg_ebp + (int)vaddr;
         kaddr = udbGetKaddr(proc, uaddr);
     }
-    if(kaddr == 0)
+    if(kaddr == 0) {
         snprintf(arg[1], 1024, "Cannot access corresponding memory");
-    else
+        return -2;
+    }
+    else {
         snprintf(arg[1], 1024, "%d", *kaddr);
+        return 0;
+    }
 }
 
 char* regTab[9] = {

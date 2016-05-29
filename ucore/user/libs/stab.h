@@ -73,7 +73,7 @@ struct SymTab {
 
 struct DebugInfo* loadStab(char* fil);
 struct DebugInfo* findSymbol(uint32_t pc, char* name);
-struct DebugInfo* findFunc(char* name);
+//struct DebugInfo* findFunc(char* name);
 // int printCodeLine(char* source, int line);
 int printCodeLineByDinfo(struct DebugInfo* p);
 

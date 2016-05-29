@@ -148,7 +148,7 @@ struct DebugInfo* findSymbol(uint32_t pc, char* name) {
         }
     }
     for(int i = 0; i < debugInfon; ++i) {
-        if( debugInfo[i].type == N_GSYM && 
+        if( (debugInfo[i].type == N_GSYM || debugInfo[i].type == N_FUN)  && 
             debugInfo[i].symStr != 0 && 
             strcmp(debugInfo[i].symStr, name) == 0)
                 return &(debugInfo[i]);

@@ -17,6 +17,7 @@
 
 #define MAXSYMLEN                       64
 
+/*
 // definitions for asmparser
 
 #define NO_INFO 0
@@ -44,8 +45,7 @@ int hex_to_int(const char c) {
 }
 
 /* *
- * asmparse - parse a line in a asm file.
- */
+ * asmparse - parse a line in a asm file. 
 void
 asmparse(const char *line, struct asminfo *info) {
     int i, len;
@@ -91,8 +91,6 @@ asmparse(const char *line, struct asminfo *info) {
         return;
     }
 }
-
-
 struct sym_node {
     int pos;
     char *val;
@@ -109,6 +107,7 @@ int gc_n = 0;
 // Function code
 struct sym_node fnsym[BUFSIZE * 8];
 int fn_n = 0;
+*/
 
 char *
 readl_fd(const char *prompt, int fd) {
@@ -204,16 +203,8 @@ void uninit() {
     exit(0);
 }
 
-uintptr_t getSym(char* s) {
-    /*
-    for(int i = 0; i < symn; ++i) {
-        if(strcmp(sym[i].name, s) == 0)
-            return sym[i].addr;
-    }*/
-    return -1;
-}
-
 /*
+
 struct Symbol {
     char name[MAXSYMLEN + 1];
     uint32_t addr;
@@ -389,6 +380,237 @@ int getVaddr(char* s) {
     return vaddr;
 }
 */
+
+enum OperatorType {
+    OPT_UNO,
+    OPT_BINARY,
+    OPT_INVALID,
+    OPT_VALUE,
+    OPT_SYMBOL,
+    OPT_LBRACE,
+    OPT_RBRACE,
+};
+
+struct Operator {
+    char* symbol;
+    int priority;
+    int(*opt)(int a, int b);
+    enum OperatorType type;
+};
+
+int calcPlus(int a, int b)  {    return a + b;   }
+int calcMinus(int a, int b) {    return a - b;   }
+int calcMult(int a, int b)  {    return a * b;   }
+int calcDiv(int a, int b)   {    return a / b;   }
+int calcMod(int a, int b)   {    return a % b;   }
+int calcShl(int a, int b)   {    return a << b;   }
+int calcShr(int a, int b)   {    return a >> b;   }
+int calcAnd(int a, int b)   {    return a & b;   }
+int calcOr(int a, int b)    {    return a | b;   }
+int calcPos(int a, int b)   {    return a;   }
+int calcNeg(int a, int b)   {    return -a;   }
+int calcAddr(int a, int b)  {    return a;   }
+
+static struct Operator operator[] = {
+{"+", 10, calcPlus, OPT_BINARY},
+{"-", 10, calcMinus, OPT_BINARY},
+{"*", 11, calcMult, OPT_BINARY},
+{"/", 11, calcDiv, OPT_BINARY},
+{"%%", 11, calcMod, OPT_BINARY},
+{"<<", 9, calcShl, OPT_BINARY},
+{">>", 9, calcShr, OPT_BINARY},
+{"&", 8, calcAnd, OPT_BINARY},
+{"|", 8, calcOr, OPT_BINARY},
+{"+", -1, calcPos, OPT_UNO},
+{"-", -1, calcNeg, OPT_UNO},
+{"(", -1, 0, OPT_LBRACE},
+{")", -1, 0, OPT_RBRACE},
+};
+#define NOPERATORS (sizeof(operator)/sizeof(struct Operator))
+
+#define MAXCALCSTACK 256
+
+struct Operator calcStack[MAXCALCSTACK];
+uint32_t calcValue[MAXCALCSTACK];
+int valuen = 0;
+int stackn = 0;
+
+char calcBuf[MAXBUF];
+enum OperatorType calcMark[MAXCALCSTACK];
+
+char* reservedChars = "`~!@#$%%^&*()+-={}|[]\\:\";'<>?,./";
+
+int findSpecOpt(char* s, enum OperatorType type) {
+    for(int j = 0; j < NOPERATORS; ++j) {
+        if(strcmp(s, operator[j].symbol) == 0 && operator[j].type == type) {
+            return j;
+        }
+    }
+    return -1;
+}
+
+int findOpt(char* s) {
+    for(int j = 0; j < NOPERATORS; ++j) {
+        if(strcmp(s, operator[j].symbol) == 0) {
+            return j;
+        }
+    }
+    return -1;
+}
+
+void printCalcStack() {
+    cprintf("--------\n"); 
+    for(int i = 1; i <= stackn; ++i) {
+        cprintf("%d ", calcStack[i].type);
+    }
+    cprintf("\n");
+    for(int i = 1; i <= valuen; ++i) {
+        cprintf("%d ", calcValue[i]);
+    }
+    cprintf("\n");
+    cprintf("--------\n");
+}
+
+void doCalc() {
+    if(calcStack[stackn].type == OPT_UNO) {
+        calcValue[valuen] = calcStack[stackn].opt(calcValue[valuen], 0);
+    } else {
+        calcValue[valuen - 1] = calcStack[stackn].opt(calcValue[valuen], calcValue[valuen -1]);
+        valuen --;
+    }
+    stackn --;
+}
+
+uint32_t calc(int argc, char* argv[]) {
+    int now = 0;
+    for(int i = 1; i < argc; ++i) 
+        for(int j = 0; argv[i][j]; ++j)
+            buf[now++] = argv[i][j];
+    buf[now] = 0;
+    now = 0;
+    for(int i = 0; buf[i]; ++i) {
+        int flag = 0;
+        for(int j = 0; j < NOPERATORS; ++j) {
+            if(buf[i] == operator[j].symbol[0]) {
+                flag = 1;
+                calcBuf[now++] = buf[i];
+                if(buf[i + 1] == '<' || buf[i + 1] == '>' )
+                    break;
+                calcBuf[now++] = ' ';
+                break;
+            }
+        }
+        if(flag)
+            continue;
+        if('0' <= buf[i] && buf[i] <= '9') {
+            while(  buf[i] == 'x' ||
+                    '0' <= buf[i] && buf[i] <= '9' || 
+                    'a' <= buf[i] && buf[i] <= 'f' || 
+                    'A' <= buf[i] && buf[i] <= 'F' ) {
+                calcBuf[now++] = buf[i++];
+            }
+            calcBuf[now++] = ' ';
+            i --;
+            continue;
+        }
+        while(1) {
+            flag = *strfind(reservedChars, buf[i]);
+            if(!flag && buf[i])
+                calcBuf[now++] = buf[i++];
+            else {
+                calcBuf[now++] = ' ', i--;
+                break;
+            }
+        }
+    }
+    cprintf("%s\n", calcBuf);
+    char** calcComp = split(calcBuf);
+    stackn = 0;
+    valuen = 0;
+    int m = 0;
+    for(int i = 0; calcComp[i]; ++i) {
+        m = i;
+        int j;
+        if((j = findOpt(calcComp[i])) != -1) {
+            if(operator[j].type == OPT_LBRACE || operator[j].type == OPT_RBRACE)
+                calcMark[i] = operator[j].type;
+            else if(i == 0 || 
+                    calcMark[i-1] == OPT_UNO || 
+                    calcMark[i-1] == OPT_BINARY ||
+                    calcMark[i-1] == OPT_LBRACE)
+                calcMark[i] = OPT_UNO;
+            else
+                calcMark[i] = OPT_BINARY;
+            continue;
+        }
+        if('0' <= calcComp[i][0] && calcComp[i][0] <= '9') {
+            calcMark[i] = OPT_VALUE;
+            continue;
+        }
+        calcMark[i] = OPT_SYMBOL;
+    }
+    for(int i = 0; i <= m; ++i) 
+        cprintf("%d ", calcMark[i]);
+    cprintf("\n");
+    for(int i = m; i >= 0; --i) {
+        printCalcStack();
+        int j;
+        struct DebugInfo* p;    
+        switch(calcMark[i]) {
+            case OPT_UNO:
+                j = findSpecOpt(calcComp[i], OPT_UNO);
+                calcStack[++stackn] = operator[j];
+                doCalc();
+            break;
+            case OPT_BINARY:
+                j = findSpecOpt(calcComp[i], OPT_BINARY);
+                while(  stackn > 0 &&
+                        calcStack[stackn].type == OPT_BINARY && 
+                        calcStack[stackn].priority > operator[j].priority)
+                    doCalc();
+                calcStack[++stackn] = operator[j];
+            break;
+            case OPT_LBRACE:
+                while(calcStack[stackn].type != OPT_RBRACE)
+                    doCalc();
+                stackn--;
+            break;
+            case OPT_RBRACE:
+                calcStack[++stackn].type = OPT_RBRACE;
+            break;
+            case OPT_VALUE:
+                calcValue[++valuen] = strToInt(calcComp[i]);
+            break;
+            case OPT_SYMBOL:
+                p = findSymbol(pinfo.pc, calcComp[i]);
+                if(p == 0) {
+                    cprintf("Cannot find symbol: %s\n", calcComp[i]);
+                    return -1;
+                }
+                uint32_t vaddr = p->vaddr;
+                int type = 0;
+                if(p->type != N_GSYM)
+                    type = 1;
+                subArgv[0] = vaddr;
+                subArgv[1] = buf;
+                subArgv[2] = type;
+                subArgv[3] = 0;
+                int result = doSysDebug(DEBUG_PRINT, subArgv);
+                if(result < 0) {
+                    cprintf("%s", subArgv[1]);
+                    return -1;
+                }
+                calcValue[++valuen] = strToInt(subArgv[1]);
+            break;
+        }
+    }
+    while(stackn) {
+        printCalcStack();
+        doCalc();
+    }
+    return calcValue[1];
+}
+
 int udbSetBreakpoint(int argc, char* argv[]) {
     int vaddr;
     char* s = argv[1];
@@ -397,7 +619,7 @@ int udbSetBreakpoint(int argc, char* argv[]) {
     } else if(s[0] == '*') {
         vaddr = strToInt(s + 1);
     } else {
-        struct DebugInfo* p = findFunc(s);
+        struct DebugInfo* p = findSymbol(pinfo.pc, s);
         if(p <= 0) {
             cprintf("Cannot find function: %s\n", s);
             return -1;
@@ -415,6 +637,7 @@ int udbPrint(int argc, char* argv[]) {
     int result;
     char* s = argv[1];
     uint32_t vaddr;
+    // return calc(argc, argv);
     if(s[0] == '$') {
         subArgv[0] = s + 1;
         subArgv[1] = 0;
@@ -492,6 +715,9 @@ int doHelp(int argc, char* argv[]) {
         cprintf("%8s(%s)    %s\n", commands[i].name, commands[i].alias, commands[i].desc);
     }
 }
+//char test[50] = "p +-1+(-2*3+4)-5";
+//char test[50] = "p +-1+(-testValue*3+4)-5";
+//char test[50] = "p +-1+(-testValue<<1*3+4)-5 | 0x001000";
 
 int main(int argc, char* argv[]) {
     strcpy(target, "test");
@@ -508,6 +734,18 @@ int main(int argc, char* argv[]) {
     loadCodeFile(buf);
     cprintf("Attached.\n");
     udbWait();
+    
+    // test begins
+    /*
+    int con = 0;
+    char** testtemp = split(test);
+    cprintf("%d\n", con);
+    while(testtemp[con]) con++;
+    cprintf("%d\n", calc(con, testtemp));
+    return 0;
+    */
+    // test ends
+    
     char* inp_raw;
     while(1) {
         inp_raw = readl_raw("udb>");
