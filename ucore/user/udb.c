@@ -439,7 +439,7 @@ static struct Operator operator[] = {
 {"-", 10, calcMinus, OPT_BINARY},
 {"*", 11, calcMult, OPT_BINARY},
 {"/", 11, calcDiv, OPT_BINARY},
-{"%%", 11, calcMod, OPT_BINARY},
+{"\%", 11, calcMod, OPT_BINARY},
 {"<<", 9, calcShl, OPT_BINARY},
 {">>", 9, calcShr, OPT_BINARY},
 {"&", 8, calcAnd, OPT_BINARY},
@@ -512,6 +512,7 @@ uint32_t calc(int argc, char* argv[]) {
         for(int j = 0; argv[i][j]; ++j)
             buf[now++] = argv[i][j];
     buf[now] = 0;
+    cprintf("%s : ", buf);
     now = 0;
     for(int i = 0; buf[i]; ++i) {
         int flag = 0;
@@ -554,6 +555,7 @@ uint32_t calc(int argc, char* argv[]) {
             }
         }
     }
+    calcBuf[now] = 0;
     cprintf("%s\n", calcBuf);
     char** calcComp = split(calcBuf);
     stackn = 0;
@@ -653,6 +655,7 @@ uint32_t calc(int argc, char* argv[]) {
         //printCalcStack();
         doCalc();
     }
+    cprintf("%d\n", calcValue[1]);
     return calcValue[1];
 }
 
@@ -704,10 +707,7 @@ int udbPrint(int argc, char* argv[]) {
         subArgv[3] = 0;
         result = doSysDebug(DEBUG_PRINT, subArgv);
         */
-        cprintf("%s : ", s);
-        result = calc(argc, argv);
-        if(!calcErrFlag)
-            cprintf("%d\n", result);
+        calc(argc, argv);
     }
     return 0;
 }
