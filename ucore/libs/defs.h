@@ -87,6 +87,7 @@ enum DebugSignal {
     DEBUG_DELBREAKPOINT = 6, 
     DEBUG_PRINT = 7, 
     DEBUG_PRINT_REG = 8,
+    DEBUG_BACKTRACE = 9,
 };
 
 struct DebugProcessInfo {

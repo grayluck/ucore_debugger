@@ -168,6 +168,16 @@ struct DebugInfo* findSline(uint32_t pc) {
     return ret;
 }
 
+uint32_t getVaddrByLine(int line) {
+    for(int i = 0; i < debugInfon; ++i) {
+        if( debugInfo[i].type == N_SLINE && 
+            strcmp(loadedFile, debugInfo[i].soStr) == 0 && 
+            debugInfo[i].sourceLine == line)
+            return debugInfo[i].vaddr;
+    }
+    return -1;
+}
+
 void processSymStr(struct DebugInfo* p) {
     int j;
     for(j = 0; p->symStr[j] && p->symStr[j] != ':'; ++j);

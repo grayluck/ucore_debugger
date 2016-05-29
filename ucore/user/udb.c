@@ -556,7 +556,7 @@ uint32_t calc(int argc, char* argv[]) {
         }
     }
     calcBuf[now] = 0;
-    cprintf("%s\n", calcBuf);
+    // cprintf("%s\n", calcBuf);
     char** calcComp = split(calcBuf);
     stackn = 0;
     valuen = 0;
@@ -666,6 +666,8 @@ int udbSetBreakpoint(int argc, char* argv[]) {
         vaddr = 0;
     } else if(s[0] == '*') {
         vaddr = strToInt(s + 1);
+    } else if('0' <= s[0] && s[0] <= '9') {
+        vaddr = getVaddrByLine(strToInt(s));
     } else {
         struct DebugInfo* p = findSymbol(pinfo.pc, s);
         if(p <= 0) {
@@ -718,8 +720,11 @@ int udbList(int argc, char* argv[]) {
         cprintf("No source code to be shown.\n");
         return -1;
     }
+    int linen = 10;
+    if(argc > 1)
+        linen = strToInt(argv[1]);
     for(int i = p->sourceLine; 
-        i < p->sourceLine + 10 && printCodeLine(p->soStr, i) == 0; 
+        i < p->sourceLine + linen && printCodeLine(p->soStr, i) == 0; 
         ++i);
 }
 
@@ -729,6 +734,21 @@ int udbQuit(int argc, char* argv[]) {
 }
 
 int doHelp(int argc, char* argv[]);
+
+int udbBacktrace(int argc, char* argv[]) {
+    subArgv[0] = buf;
+    subArgv[1] = 0;
+    int result = doSysDebug(DEBUG_BACKTRACE, subArgv);
+    char** res = split(buf);
+    for(int i = 0; res[i]; i += 2) {
+        uint32_t ebp = strToInt(res[i]);
+        uint32_t eip = strToInt(res[i + 1]);
+        struct DebugInfo* deb = findSline(eip);
+        cprintf(
+            "0x%08x in %s (ebp=%08x, eip=%08x) at %s:%d\n", 
+            eip, deb->func->symStr, ebp, eip, deb->soStr, deb->sourceLine);
+    }
+}
 
 struct command {
     const char *name;
@@ -746,6 +766,7 @@ static struct command commands[] = {
     {"breakpoint", "b", "Set a breakpoint", udbSetBreakpoint},
     {"list", "l", "List source code", udbList},
     {"print", "p", "Print an expression for once", udbPrint},
+    {"backtrace", "bt", "Print a backtrace of the entire stack: one line per frame for all frames in the stack.", udbBacktrace},
     {"quit", "q", "Quit udb", udbQuit},
 };
 
@@ -762,7 +783,11 @@ int doHelp(int argc, char* argv[]) {
 //char test[50] = "p +-1+(-testValue<<1*3+4)-5 | 0x001000";
 
 int main(int argc, char* argv[]) {
-    strcpy(target, "test");
+    if(argc == 1)
+    {
+        strcpy(target, "test");
+    } else
+        strcpy(target, argv[1]);
     if ((pid = fork()) == 0) {
         subArgv[0] = target;
         subArgv[1] = NULL;
@@ -774,7 +799,7 @@ int main(int argc, char* argv[]) {
     strcat(buf, ".c");
     strcpy(loadedSource, buf);
     loadCodeFile(buf);
-    load_asm();
+    // load_asm();
     cprintf("Attached.\n");
     udbWait();
     

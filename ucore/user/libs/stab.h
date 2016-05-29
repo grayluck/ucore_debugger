@@ -76,5 +76,6 @@ struct DebugInfo* findSymbol(uint32_t pc, char* name);
 //struct DebugInfo* findFunc(char* name);
 // int printCodeLine(char* source, int line);
 int printCodeLineByDinfo(struct DebugInfo* p);
+uint32_t getVaddrByLine(int line);
 
 #endif

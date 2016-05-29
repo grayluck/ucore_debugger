@@ -121,13 +121,13 @@ int udbSetBp(struct proc_struct* proc, uintptr_t vaddr) {
 
 int udbStepInto(struct proc_struct* proc) {
     nextStepCount = 1;
-    udbContinue(proc);
+    return udbContinue(proc);
 }
 
 int udbStepOver(struct proc_struct* proc) {
     uintptr_t pc = current->tf->tf_eip;
     // uint32_t test = udbGetKaddr(proc, pc);
-    udbContinue(proc);
+    return udbContinue(proc);
 }
 
 int udbPrint(struct proc_struct* proc, char* arg[]) {
@@ -148,6 +148,7 @@ int udbPrint(struct proc_struct* proc, char* arg[]) {
         snprintf(arg[1], 1024, "%d", *kaddr);
         return 0;
     }
+    return 0;
 }
 
 char* regTab[9] = {
@@ -166,11 +167,33 @@ int udbPrintReg(struct proc_struct* proc, char* arg[]) {
     char* regStr = arg[0];
     for(int i = 0; regTab[i]; ++i) {
         if(strcmp(regTab[i], regStr) == 0) {
-            cprintf("0x08x\n", *((uint32_t*)(&(proc->tf->tf_regs)) + i));
+            cprintf("0x%08x\n", *((uint32_t*)(&(proc->tf->tf_regs)) + i));
             return 0;
         }
     }
-    return -1;
+    cprintf("No such register.\n");
+    return -2;
+}
+
+int udbBacktrace(struct proc_struct* proc, char* arg[]) {
+    char* buf = arg[0];
+    uint32_t* ebp = proc->tf->tf_regs.reg_ebp;
+    int i, j;
+    for (i = 0; ebp != 0 && i < 10; i ++) {
+        uint32_t* kaddr = udbGetKaddr(proc, ebp);
+        uint32_t* eip = udbGetKaddr(proc, ebp + 1);
+        snprintf(buf, 1024, "0x%08x 0x%08x ", ebp, *eip);
+        buf += strlen(buf);
+        /*
+        uint32_t *args = (uint32_t *)ebp + 2;
+        for (j = 0; j < 4; j ++) {
+          cprintf("0x%08x ", args[j]);
+        }
+        cprintf("\n");
+        */
+        ebp = *(kaddr);
+    }
+    return 0;
 }
 
 int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
@@ -199,6 +222,9 @@ int userDebug(uintptr_t pid, enum DebugSignal sig, uint32_t arg) {
         break;
         case DEBUG_PRINT_REG:
             return udbPrintReg(proc, arg);
+        break;
+        case DEBUG_BACKTRACE:
+            return udbBacktrace(proc, arg);
         break;
     }
 }
