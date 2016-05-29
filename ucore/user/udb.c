@@ -398,6 +398,8 @@ struct Operator {
     enum OperatorType type;
 };
 
+int calcErrFlag = 0;
+
 int calcPlus(int a, int b)  {    return a + b;   }
 int calcMinus(int a, int b) {    return a - b;   }
 int calcMult(int a, int b)  {    return a * b;   }
@@ -409,7 +411,21 @@ int calcAnd(int a, int b)   {    return a & b;   }
 int calcOr(int a, int b)    {    return a | b;   }
 int calcPos(int a, int b)   {    return a;   }
 int calcNeg(int a, int b)   {    return -a;   }
-int calcAddr(int a, int b)  {    return a;   }
+int calcAddrValue(int a, int b)  {
+    uint32_t vaddr = a;
+    subArgv[0] = vaddr;
+    subArgv[1] = buf;
+    subArgv[2] = 0;
+    subArgv[3] = 0;
+    int result = doSysDebug(DEBUG_PRINT, subArgv);
+    if(result < 0)
+    {
+        cprintf("%s\n", subArgv[1]);
+        calcErrFlag = -1;
+        return -1;
+    }else
+        return strToInt(subArgv[1]);
+}
 
 static struct Operator operator[] = {
 {"+", 10, calcPlus, OPT_BINARY},
@@ -425,6 +441,7 @@ static struct Operator operator[] = {
 {"-", -1, calcNeg, OPT_UNO},
 {"(", -1, 0, OPT_LBRACE},
 {")", -1, 0, OPT_RBRACE},
+{"*", -1, calcAddrValue, OPT_UNO},
 };
 #define NOPERATORS (sizeof(operator)/sizeof(struct Operator))
 
@@ -482,6 +499,7 @@ void doCalc() {
 }
 
 uint32_t calc(int argc, char* argv[]) {
+    calcErrFlag = 0;
     int now = 0;
     for(int i = 1; i < argc; ++i) 
         for(int j = 0; argv[i][j]; ++j)
@@ -512,6 +530,12 @@ uint32_t calc(int argc, char* argv[]) {
             calcBuf[now++] = ' ';
             i --;
             continue;
+        }
+        flag = *strfind(reservedChars, buf[i]);
+        if(flag) {
+            cprintf("Invalid character: %c\n", buf[i]);
+            calcErrFlag = -1;
+            return -1;
         }
         while(1) {
             flag = *strfind(reservedChars, buf[i]);
@@ -549,21 +573,33 @@ uint32_t calc(int argc, char* argv[]) {
         }
         calcMark[i] = OPT_SYMBOL;
     }
+    /*
     for(int i = 0; i <= m; ++i) 
         cprintf("%d ", calcMark[i]);
     cprintf("\n");
+    */
     for(int i = m; i >= 0; --i) {
-        printCalcStack();
+        //printCalcStack();
         int j;
         struct DebugInfo* p;    
         switch(calcMark[i]) {
             case OPT_UNO:
                 j = findSpecOpt(calcComp[i], OPT_UNO);
+                if(j == -1) {
+                    cprintf("Invalid expression!\n");
+                    calcErrFlag = -1;
+                    return -1;
+                }
                 calcStack[++stackn] = operator[j];
                 doCalc();
             break;
             case OPT_BINARY:
                 j = findSpecOpt(calcComp[i], OPT_BINARY);
+                if(j == -1) {
+                    cprintf("Invalid expression!\n");
+                    calcErrFlag = -1;
+                    return -1;
+                }
                 while(  stackn > 0 &&
                         calcStack[stackn].type == OPT_BINARY && 
                         calcStack[stackn].priority > operator[j].priority)
@@ -585,6 +621,7 @@ uint32_t calc(int argc, char* argv[]) {
                 p = findSymbol(pinfo.pc, calcComp[i]);
                 if(p == 0) {
                     cprintf("Cannot find symbol: %s\n", calcComp[i]);
+                    calcErrFlag = -1;
                     return -1;
                 }
                 uint32_t vaddr = p->vaddr;
@@ -598,6 +635,7 @@ uint32_t calc(int argc, char* argv[]) {
                 int result = doSysDebug(DEBUG_PRINT, subArgv);
                 if(result < 0) {
                     cprintf("%s", subArgv[1]);
+                    calcErrFlag = -1;
                     return -1;
                 }
                 calcValue[++valuen] = strToInt(subArgv[1]);
@@ -605,7 +643,7 @@ uint32_t calc(int argc, char* argv[]) {
         }
     }
     while(stackn) {
-        printCalcStack();
+        //printCalcStack();
         doCalc();
     }
     return calcValue[1];
@@ -642,15 +680,8 @@ int udbPrint(int argc, char* argv[]) {
         subArgv[0] = s + 1;
         subArgv[1] = 0;
         result = doSysDebug(DEBUG_PRINT_REG, subArgv);
-    } else if(s[0] == '*') {
-        vaddr = strToInt(s + 1);
-        subArgv[0] = vaddr;
-        subArgv[1] = buf;
-        subArgv[2] = 0;
-        subArgv[3] = 0;
-        result = doSysDebug(DEBUG_PRINT, subArgv);
-        cprintf("0x%08x : %s\n", vaddr, subArgv[1]);
     } else {
+        /*
         struct DebugInfo* p = findSymbol(pinfo.pc, s);
         if(p == 0) {
             cprintf("Cannot find symbol: %s\n", s);
@@ -665,7 +696,11 @@ int udbPrint(int argc, char* argv[]) {
         subArgv[2] = type;
         subArgv[3] = 0;
         result = doSysDebug(DEBUG_PRINT, subArgv);
-        cprintf("%s : %s\n", s, subArgv[1]);
+        */
+        cprintf("%s : ", s);
+        result = calc(argc, argv);
+        if(!calcErrFlag)
+            cprintf("%d\n", result);
     }
     return 0;
 }
