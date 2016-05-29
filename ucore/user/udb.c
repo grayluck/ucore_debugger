@@ -17,13 +17,15 @@
 
 #define MAXSYMLEN                       64
 
-/*
+
 // definitions for asmparser
 
 #define NO_INFO 0
 #define ASM_CODE 1
 #define GCC_CODE 2
 #define FUNC_DEF 3
+
+char *empty_string = "(assembly not loaded)";
 
 struct asminfo {
     char type;
@@ -46,6 +48,7 @@ int hex_to_int(const char c) {
 
 /* *
  * asmparse - parse a line in a asm file. 
+*/
 void
 asmparse(const char *line, struct asminfo *info) {
     int i, len;
@@ -53,7 +56,7 @@ asmparse(const char *line, struct asminfo *info) {
     info->type = 0;
     info->buf[0] = '\0';
     info->pos = 0;
-    if (strlen(line) > 10 
+/*    if (strlen(line) > 10 
             && is_hex(line[0]) 
             && is_hex(line[1])
             && line[9] == '<') {
@@ -67,7 +70,7 @@ asmparse(const char *line, struct asminfo *info) {
         }
         info->buf[i-10] = '\0';
         return;
-    } else if (strlen(line) > 10 
+    } else */if (strlen(line) > 10 
             && line[0] == ' '
             && line[1] == ' '
             && is_hex(line[2])
@@ -78,18 +81,13 @@ asmparse(const char *line, struct asminfo *info) {
             info->pos += hex_to_int(line[i]);
         }
         len = strlen(line);
-        flag = 0;
-        for (i = 2; i < len && flag < 2; i++) {
-            if (line[i] == '\t') {
-                flag++;
-            }
-        }
-        strcpy(info->buf, line+i);
-    } else {
+        strcpy(info->buf, line+30);
+    }/* else {
         info->type = GCC_CODE;
         strcpy(info->buf, line);
         return;
-    }
+    }*/
+    return;
 }
 struct sym_node {
     int pos;
@@ -102,12 +100,11 @@ int bf_n = -1;
 struct sym_node assym[BUFSIZE * 8];
 int as_n = 0;
 // C code
-struct sym_node gcsym[BUFSIZE * 8];
-int gc_n = 0;
+// struct sym_node gcsym[BUFSIZE * 8];
+// int gc_n = 0;
 // Function code
-struct sym_node fnsym[BUFSIZE * 8];
-int fn_n = 0;
-*/
+// struct sym_node fnsym[BUFSIZE * 8];
+// int fn_n = 0;
 
 char *
 readl_fd(const char *prompt, int fd) {
@@ -247,11 +244,11 @@ uintptr_t getSym(char* s) {
     }
     return -1;
 }
-
+*/
 ///////////////// parsing asm file ////////////////
 //
 void load_asm() {
-    as_n = gc_n = fn_n = 0;
+    as_n = 0;// = gc_n = fn_n = 0;
     bf_n = -1;
     struct asminfo info;
     strcpy(buf, target);
@@ -267,38 +264,48 @@ void load_asm() {
             break;
         }
         asmparse(tmp, &info);
-        if (info.type == FUNC_DEF) {
+/*        if (info.type == FUNC_DEF) {
             fnsym[fn_n].pos = info.pos;
             fnsym[fn_n].val = bf + bf_n + 1;
             strcpy(fnsym[fn_n].val, info.buf);
             bf_n = bf_n + strlen(info.buf) + 1;
             fn_n ++;
-        } else if (info.type == ASM_CODE) {
+        } else */
+        if (info.type == ASM_CODE) {
             assym[as_n].pos = info.pos;
             assym[as_n].val = bf + bf_n + 1;
             strcpy(assym[as_n].val, info.buf);
             bf_n = bf_n + strlen(info.buf) + 1;
             // modify pos for c code, so that we know where 
             // in the memory does the c code points to
-            for (i = gc_n - 1; i >= 0; i--) {
-                if (gcsym[i].pos == 0) {
-                    gcsym[i].pos = info.pos;
-                } else {
-                    break;
-                }
-            }
+   //         for (i = gc_n - 1; i >= 0; i--) {
+   //             if (gcsym[i].pos == 0) {
+   //                 gcsym[i].pos = info.pos;
+   //             } else {
+   //                 break;
+   //             }
+   //         }
             as_n ++;
-        } else if (info.type == GCC_CODE) {
+        }/* else if (info.type == GCC_CODE) {
             gcsym[gc_n].pos = 0;
             gcsym[gc_n].val = bf + bf_n + 1;
             strcpy(gcsym[gc_n].val, info.buf);
             bf_n = bf_n + strlen(info.buf) + 1;
             gc_n ++;
-        }
+        }*/
     }
     close(fil);
 }
-*/
+
+char *find_asm_by_pos(uint32_t pos) {
+    int i;
+    for (i = 0; i < as_n; i++) {
+        if ((int)pos == assym[i].pos) {
+            return assym[i].val;
+        }
+    }
+    return empty_string;
+}
 
 uint32_t doSysDebug(int sig, int arg) {
     // printf("[debug]%d\n", sig);
@@ -336,7 +343,7 @@ int udbStepInto(int argc, char* argv[]) {
 int udbInstStepInto(int argc, char* argv[]) {
     doSysDebug(DEBUG_STEPINTO, 0);
     udbWait();
-    cprintf("0x%08x\n", pinfo.pc);
+    cprintf("0x%08x %s\n", pinfo.pc, find_asm_by_pos(pinfo.pc));
     struct DebugInfo* p = findSline(pinfo.pc);
     if(p && p->vaddr == pinfo.pc)
         printCodeLineByDinfo(p);
@@ -365,7 +372,7 @@ int udbStepOver(int argc, char* argv[]) {
     return 0;
 }
 /*
-int getVaddr(char* s) {                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                  
+int getVaddr(char* s) {
     char* addr = s;
     char* vaddr;
     if(addr[0] == '*') {
@@ -767,6 +774,7 @@ int main(int argc, char* argv[]) {
     strcat(buf, ".c");
     strcpy(loadedSource, buf);
     loadCodeFile(buf);
+    load_asm();
     cprintf("Attached.\n");
     udbWait();
     
