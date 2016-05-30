@@ -177,20 +177,17 @@ int udbPrintReg(struct proc_struct* proc, char* arg[]) {
 
 int udbBacktrace(struct proc_struct* proc, char* arg[]) {
     char* buf = arg[0];
-    uint32_t* ebp = proc->tf->tf_regs.reg_ebp;
     int i, j;
-    for (i = 0; ebp != 0 && i < 10; i ++) {
-        uint32_t* kaddr = udbGetKaddr(proc, ebp);
+    snprintf(buf, 1024, "0x%08x 0x%08x ", proc->tf->tf_esp, proc->tf->tf_eip);
+    buf += strlen(buf);
+    uint32_t* ebp = proc->tf->tf_regs.reg_ebp;
+    while(1) {
+        if(ebp == 0)
+            break;
         uint32_t* eip = udbGetKaddr(proc, ebp + 1);
         snprintf(buf, 1024, "0x%08x 0x%08x ", ebp, *eip);
         buf += strlen(buf);
-        /*
-        uint32_t *args = (uint32_t *)ebp + 2;
-        for (j = 0; j < 4; j ++) {
-          cprintf("0x%08x ", args[j]);
-        }
-        cprintf("\n");
-        */
+        uint32_t* kaddr = udbGetKaddr(proc, ebp);
         ebp = *(kaddr);
     }
     return 0;

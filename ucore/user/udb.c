@@ -745,7 +745,7 @@ int udbBacktrace(int argc, char* argv[]) {
         uint32_t eip = strToInt(res[i + 1]);
         struct DebugInfo* deb = findSline(eip);
         cprintf(
-            "0x%08x in %s (ebp=%08x, eip=%08x) at %s:%d\n", 
+            "0x%08x in %s (ebp=0x%08x, eip=0x%08x) at %s:%d\n", 
             eip, deb->func->symStr, ebp, eip, deb->soStr, deb->sourceLine);
     }
 }
